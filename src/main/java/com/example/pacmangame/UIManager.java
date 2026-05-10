@@ -231,6 +231,8 @@ public class UIManager {
         gameOverScreen.setVisible(false);
         menuScreen.setVisible(true);
         gameManager.setGameState(GameState.MENU);
+        // Stop the game loop while in the menu to save CPU and avoid unexpected input
+        gameManager.stop();
 
         if (gameManager.canContinueGame()) {
             btnContinue.setDisable(false);
@@ -273,6 +275,8 @@ public class UIManager {
         gameManager.getCanvas().setVisible(true);
         gameManager.getCanvas().requestFocus();
         gameManager.setGameState(GameState.PLAYING);
+        // Ensure the game loop is running when entering the game
+        gameManager.start();
     }
 
     public void showPauseMenu() {
@@ -285,15 +289,28 @@ public class UIManager {
     }
 
     public void showGameOver(int score) {
-        recordScore(score);
+        // Stop the game loop to freeze the canvas and avoid animation interference
+        gameManager.stop();
+
+        // Show the Game Over overlay first so the user sees it immediately.
+        // Schedule the optional score recording to run after the overlay is rendered
+        // to avoid blocking the UI thread before the overlay becomes visible.
+        javafx.application.Platform.runLater(() -> recordScore(score));
+
         menuScreen.setVisible(false);
         settingsScreen.setVisible(false);
         pauseScreen.setVisible(false);
         gameManager.getCanvas().setVisible(true);
-        finalScoreGameOver
-                .setText((SettingsManager.getInstance().getLanguage() == SettingsManager.Language.VI ? "ĐIỂM CUỐI: "
-                        : "FINAL SCORE: ") + score);
+
+        finalScoreGameOver.setText((SettingsManager.getInstance().getLanguage() == SettingsManager.Language.VI
+                ? "ĐIỂM CUỐI: "
+                : "FINAL SCORE: ") + score);
+
+        // Make sure the overlay fills the window and is in front
+        gameOverScreen.setPrefSize(root.getWidth(), root.getHeight());
         gameOverScreen.setVisible(true);
+        gameOverScreen.toFront();
+
         gameManager.setGameState(GameState.GAME_OVER);
     }
 

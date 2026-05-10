@@ -321,7 +321,11 @@ public class GameManager {
             if (distance < TILE_SIZE - 4) {
                 if (g.getState() == GhostState.CHASE || g.getState() == GhostState.SCATTER) {
                     SoundManager.getInstance().playSound("death");
+                    System.out.println("[DEBUG] Collision with ghost " + g.getType() + " at (pacman=" + pacman.getX()
+                            + "," + pacman.getY() + ") (ghost=" + g.getX() + "," + g.getY() + ") - lives before="
+                            + lives);
                     lives--;
+                    System.out.println("[DEBUG] lives after decrement=" + lives);
                     isPaused = true;
                     pauseEndTime = System.currentTimeMillis() + 2000;
 
@@ -454,6 +458,8 @@ public class GameManager {
     }
 
     private void applySnapshot(GameSessionStore.Snapshot snapshot) {
+        System.out.println("[DEBUG] Applying snapshot: lives=" + snapshot.lives() + ", score=" + snapshot.score()
+                + ", level=" + snapshot.level());
         score = snapshot.score();
         lives = snapshot.lives();
         comboMultiplier = snapshot.comboMultiplier();
