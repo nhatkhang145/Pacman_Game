@@ -89,22 +89,37 @@ public class GameManager {
         // Khởi tạo Clyde (Cam) - Xuất phát trong chuồng (x=9, y=10 để không dính tường)
         ghosts.add(new Ghost(9 * TILE_SIZE, 10 * TILE_SIZE, GhostType.CLYDE));
 
-        int newSpeed = 2;
-        if (level >= 5) {
-            newSpeed = 4;
-        }
-
-        pacman.setSpeed(newSpeed);
+        pacman.setSpeed(2);
         for (Ghost g : ghosts) {
-            g.setSpeed(newSpeed);
+            g.setSpeed(1);
         }
+    }
+
+    private long getUpdateInterval() {
+        // Màn 1 bắt đầu ở 60 FPS, mỗi màn tăng thêm 4 FPS để tạo cảm giác nhanh dần nhẹ nhàng
+        int targetFPS = 60 + (level - 1) * 4;
+        return 1_000_000_000L / targetFPS;
     }
 
     private void setupGameLoop() {
         gameLoop = new AnimationTimer() {
+            private long lastUpdate = 0;
+
             @Override
             public void handle(long now) {
-                update();
+                if (lastUpdate == 0) {
+                    lastUpdate = now;
+                    update();
+                    render();
+                    return;
+                }
+
+                long elapsed = now - lastUpdate;
+                long updateInterval = getUpdateInterval();
+                if (elapsed >= updateInterval) {
+                    update();
+                    lastUpdate = now - (elapsed % updateInterval);
+                }
                 render();
             }
         };
@@ -479,7 +494,7 @@ public class GameManager {
         ghosts = new ArrayList<>();
         for (GameSessionStore.GhostSnapshot ghostSnapshot : snapshot.ghostSnapshots()) {
             Ghost ghost = new Ghost(ghostSnapshot.x(), ghostSnapshot.y(), ghostSnapshot.type());
-            ghost.setSpeed(ghostSnapshot.speed());
+            ghost.setSpeed(1);
             ghost.setState(ghostSnapshot.state());
             ghost.setCurrentDirection(ghostSnapshot.direction());
             ghosts.add(ghost);
