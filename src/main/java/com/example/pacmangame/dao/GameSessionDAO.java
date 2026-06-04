@@ -1,5 +1,8 @@
-package com.example.pacmangame;
+package com.example.pacmangame.dao;
 
+import com.example.pacmangame.model.Direction;
+import com.example.pacmangame.model.GhostState;
+import com.example.pacmangame.model.GhostType;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -10,18 +13,18 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
 
-public final class GameSessionStore {
-    private static GameSessionStore instance;
+public final class GameSessionDAO {
+    private static GameSessionDAO instance;
 
     private final Path storageFile;
 
-    private GameSessionStore() {
+    private GameSessionDAO() {
         storageFile = Paths.get(System.getProperty("user.home"), ".pacman-game", "save.properties");
     }
 
-    public static synchronized GameSessionStore getInstance() {
+    public static synchronized GameSessionDAO getInstance() {
         if (instance == null) {
-            instance = new GameSessionStore();
+            instance = new GameSessionDAO();
         }
         return instance;
     }

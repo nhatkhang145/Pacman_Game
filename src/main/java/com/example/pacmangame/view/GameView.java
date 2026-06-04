@@ -1,5 +1,9 @@
-package com.example.pacmangame;
+package com.example.pacmangame.view;
 
+import com.example.pacmangame.controller.GameController;
+import com.example.pacmangame.dao.LeaderboardDAO;
+import com.example.pacmangame.model.GameState;
+import com.example.pacmangame.model.SettingsManager;
 import javafx.geometry.Pos;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -7,13 +11,13 @@ import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 
-public class UIManager {
+public class GameView {
     private StackPane root;
     private VBox menuScreen;
     private VBox settingsScreen;
     private VBox pauseScreen;
     private VBox gameOverScreen;
-    private GameManager gameManager;
+    private GameController gameController;
     private GameState previousState = GameState.MENU;
 
     // UI Elements
@@ -44,9 +48,9 @@ public class UIManager {
     private Button btnGameOverLeaderboard;
     private Button btnGameOverQuit;
 
-    public UIManager(GameManager gameManager) {
-        this.gameManager = gameManager;
-        this.gameManager.setUIManager(this);
+    public GameView(GameController gameController) {
+        this.gameController = gameController;
+        this.gameController.setGameView(this);
 
         this.root = new StackPane();
         this.root.setStyle("-fx-background-color: black;");
@@ -57,9 +61,9 @@ public class UIManager {
         createGameOverScreen();
 
         // Ensure canvas can receive focus for key events
-        gameManager.getCanvas().setFocusTraversable(true);
+        gameController.getCanvas().setFocusTraversable(true);
 
-        root.getChildren().addAll(gameManager.getCanvas(), settingsScreen, pauseScreen, gameOverScreen, menuScreen);
+        root.getChildren().addAll(gameController.getCanvas(), settingsScreen, pauseScreen, gameOverScreen, menuScreen);
 
         showMenu();
         updateLanguage();
@@ -80,15 +84,15 @@ public class UIManager {
 
         btnPlay = createRetroButton("");
         btnPlay.setOnAction(e -> {
-            gameManager.clearSavedGame();
-            gameManager.resetGame();
+            gameController.clearSavedGame();
+            gameController.resetGame();
             showGame();
         });
 
         btnContinue = createRetroButton("");
         btnContinue.setDisable(true);
         btnContinue.setOnAction(e -> {
-            if (gameManager.continueSavedGame()) {
+            if (gameController.continueSavedGame()) {
                 showGame();
             } else {
                 showAlert("Continue", "No saved game found.");
@@ -163,14 +167,14 @@ public class UIManager {
         btnResume.setOnAction(e -> showGame());
 
         btnPauseSave = createRetroButton("");
-        btnPauseSave.setOnAction(e -> notifySave(gameManager.saveCurrentGame()));
+        btnPauseSave.setOnAction(e -> notifySave(gameController.saveCurrentGame()));
 
         btnPauseSettings = createRetroButton("");
         btnPauseSettings.setOnAction(e -> showSettings());
 
         btnQuit = createRetroButton("");
         btnQuit.setOnAction(e -> {
-            notifySave(gameManager.saveCurrentGame());
+            notifySave(gameController.saveCurrentGame());
             showMenu();
         });
 
@@ -196,13 +200,13 @@ public class UIManager {
 
         btnPlayAgain = createRetroButton("");
         btnPlayAgain.setOnAction(e -> {
-            gameManager.clearSavedGame();
-            gameManager.resetGame();
+            gameController.clearSavedGame();
+            gameController.resetGame();
             showGame();
         });
 
         btnGameOverSave = createRetroButton("");
-        btnGameOverSave.setOnAction(e -> notifySave(gameManager.saveCurrentGame()));
+        btnGameOverSave.setOnAction(e -> notifySave(gameController.saveCurrentGame()));
 
         btnGameOverLeaderboard = createRetroButton("");
         btnGameOverLeaderboard.setOnAction(e -> showLeaderboard());
@@ -230,16 +234,16 @@ public class UIManager {
     }
 
     public void showMenu() {
-        gameManager.getCanvas().setVisible(false);
+        gameController.getCanvas().setVisible(false);
         settingsScreen.setVisible(false);
         pauseScreen.setVisible(false);
         gameOverScreen.setVisible(false);
         menuScreen.setVisible(true);
-        gameManager.setGameState(GameState.MENU);
+        gameController.setGameState(GameState.MENU);
         // Stop the game loop while in the menu to save CPU and avoid unexpected input
-        gameManager.stop();
+        gameController.stop();
 
-        if (gameManager.canContinueGame()) {
+        if (gameController.canContinueGame()) {
             btnContinue.setDisable(false);
         } else {
             btnContinue.setDisable(true);
@@ -247,7 +251,7 @@ public class UIManager {
     }
 
     public void showSettings() {
-        previousState = gameManager.getGameState();
+        previousState = gameController.getGameState();
 
         // Hide UI elements to show settings
         menuScreen.setVisible(false);
@@ -257,11 +261,11 @@ public class UIManager {
         // Do not hide the canvas if we are coming from PAUSED, so settings overlay on
         // top of game
         if (previousState != GameState.PAUSED) {
-            gameManager.getCanvas().setVisible(false);
+            gameController.getCanvas().setVisible(false);
         }
 
         settingsScreen.setVisible(true);
-        gameManager.setGameState(GameState.SETTINGS);
+        gameController.setGameState(GameState.SETTINGS);
     }
 
     private void backFromSettings() {
@@ -277,25 +281,25 @@ public class UIManager {
         settingsScreen.setVisible(false);
         pauseScreen.setVisible(false);
         gameOverScreen.setVisible(false);
-        gameManager.getCanvas().setVisible(true);
-        gameManager.getCanvas().requestFocus();
-        gameManager.setGameState(GameState.PLAYING);
+        gameController.getCanvas().setVisible(true);
+        gameController.getCanvas().requestFocus();
+        gameController.setGameState(GameState.PLAYING);
         // Ensure the game loop is running when entering the game
-        gameManager.start();
+        gameController.start();
     }
 
     public void showPauseMenu() {
         menuScreen.setVisible(false);
         settingsScreen.setVisible(false);
         gameOverScreen.setVisible(false);
-        gameManager.getCanvas().setVisible(true);
+        gameController.getCanvas().setVisible(true);
         pauseScreen.setVisible(true);
-        gameManager.setGameState(GameState.PAUSED);
+        gameController.setGameState(GameState.PAUSED);
     }
 
     public void showGameOver(int score) {
         // Stop the game loop to freeze the canvas and avoid animation interference
-        gameManager.stop();
+        gameController.stop();
 
         // Show the Game Over overlay first so the user sees it immediately.
         // Schedule the optional score recording to run after the overlay is rendered
@@ -305,7 +309,7 @@ public class UIManager {
         menuScreen.setVisible(false);
         settingsScreen.setVisible(false);
         pauseScreen.setVisible(false);
-        gameManager.getCanvas().setVisible(true);
+        gameController.getCanvas().setVisible(true);
 
         finalScoreGameOver.setText((SettingsManager.getInstance().getLanguage() == SettingsManager.Language.VI
                 ? "ĐIỂM CUỐI: "
@@ -316,7 +320,7 @@ public class UIManager {
         gameOverScreen.setVisible(true);
         gameOverScreen.toFront();
 
-        gameManager.setGameState(GameState.GAME_OVER);
+        gameController.setGameState(GameState.GAME_OVER);
     }
 
     private void recordScore(int score) {
@@ -331,13 +335,13 @@ public class UIManager {
                 .filter(name -> !name.isEmpty())
                 .orElse("PLAYER");
 
-        LeaderboardManager.getInstance().addScore(playerName, score);
+        LeaderboardDAO.getInstance().addScore(playerName, score);
     }
 
     public void showLeaderboard() {
         boolean isVi = SettingsManager.getInstance().getLanguage() == SettingsManager.Language.VI;
         String title = isVi ? "BẢNG XẾP HẠNG OFFLINE" : "OFFLINE LEADERBOARD";
-        String content = LeaderboardManager.getInstance().buildLeaderboardText(10, isVi);
+        String content = LeaderboardDAO.getInstance().buildLeaderboardText(10, isVi);
 
         Alert alert = new Alert(Alert.AlertType.INFORMATION);
         alert.setTitle(title);

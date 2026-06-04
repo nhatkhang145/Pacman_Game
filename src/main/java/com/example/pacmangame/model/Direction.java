@@ -1,4 +1,4 @@
-package com.example.pacmangame;
+package com.example.pacmangame.model;
 
 public enum Direction {
     UP, DOWN, LEFT, RIGHT, NONE

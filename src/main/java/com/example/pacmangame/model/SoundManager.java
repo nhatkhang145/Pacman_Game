@@ -1,4 +1,4 @@
-package com.example.pacmangame;
+package com.example.pacmangame.model;
 
 import javafx.scene.media.AudioClip;
 import java.io.File;

@@ -1,5 +1,7 @@
 package com.example.pacmangame;
 
+import com.example.pacmangame.controller.GameController;
+import com.example.pacmangame.view.GameView;
 import javafx.application.Application;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
@@ -8,16 +10,14 @@ public class Main extends Application {
 
     @Override
     public void start(Stage primaryStage) {
-        GameManager gameManager = new GameManager();
-
-        // Khởi tạo UIManager để quản lý Scene
-        UIManager uiManager = new UIManager(gameManager);
+        GameController gameController = new GameController();
+        GameView gameView = new GameView(gameController);
 
         // Kích thước cửa sổ bằng kích thước Canvas (20 cột x 19 hàng * 32)
-        Scene scene = new Scene(uiManager.getRoot(), 20 * 32, 19 * 32);
+        Scene scene = new Scene(gameView.getRoot(), 20 * 32, 19 * 32);
 
-        // Bắt sự kiện bàn phím và chuyển cho GameManager
-        scene.setOnKeyPressed(event -> gameManager.handleKeyPress(event));
+        // Bắt sự kiện bàn phím và chuyển cho GameController
+        scene.setOnKeyPressed(event -> gameController.handleKeyPress(event));
 
         primaryStage.setTitle("Pac-Man Game 2D");
         primaryStage.setScene(scene);
@@ -25,7 +25,7 @@ public class Main extends Application {
         primaryStage.show();
 
         // Bắt đầu vòng lặp game nhưng ban đầu nó ở chế độ MENU
-        gameManager.start();
+        gameController.start();
     }
 
     public static void main(String[] args) {
