@@ -1,4 +1,4 @@
-package com.example.pacmangame;
+package com.example.pacmangame.model;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -74,10 +74,10 @@ public class Ghost {
 
     // Inky cần vị trí của Blinky để tính toán mục tiêu
     public void update(int[][] map, Pacman pacman, Ghost blinky) {
-        if (x % GameManager.TILE_SIZE == 0 && y % GameManager.TILE_SIZE == 0) {
+        if (x % GameConfig.TILE_SIZE == 0 && y % GameConfig.TILE_SIZE == 0) {
 
-            int currentGridX = x / GameManager.TILE_SIZE;
-            int currentGridY = y / GameManager.TILE_SIZE;
+            int currentGridX = x / GameConfig.TILE_SIZE;
+            int currentGridY = y / GameConfig.TILE_SIZE;
 
             int targetX = 0;
             int targetY = 0;
@@ -129,8 +129,8 @@ public class Ghost {
                             break;
                     }
                     // Tính vector từ Blinky đến 2 ô đó, rồi nhân đôi
-                    int vectorX = twoAheadX - (blinky.getX() / GameManager.TILE_SIZE);
-                    int vectorY = twoAheadY - (blinky.getY() / GameManager.TILE_SIZE);
+                    int vectorX = twoAheadX - (blinky.getX() / GameConfig.TILE_SIZE);
+                    int vectorY = twoAheadY - (blinky.getY() / GameConfig.TILE_SIZE);
                     targetX = twoAheadX + vectorX;
                     targetY = twoAheadY + vectorY;
                 } else if (type == GhostType.CLYDE) {
@@ -196,7 +196,7 @@ public class Ghost {
                 if (nextY >= 0 && nextY < map.length && nextX >= 0 && nextX < map[0].length) {
                     if (map[nextY][nextX] == 1)
                         continue;
-                    if (map[nextY][nextX] == 9 && !GameManager.isGateOpen)
+                    if (map[nextY][nextX] == 9 && !GameConfig.gateOpen)
                         continue;
                     validDirs.add(dir);
                 }
@@ -254,8 +254,8 @@ public class Ghost {
             }
         } else {
             // Phản xạ thời gian thực: Cửa sập đóng đột ngột
-            int nextX = x / GameManager.TILE_SIZE;
-            int nextY = y / GameManager.TILE_SIZE;
+            int nextX = x / GameConfig.TILE_SIZE;
+            int nextY = y / GameConfig.TILE_SIZE;
             switch (currentDirection) {
                 case UP:
                     nextY--;
@@ -273,15 +273,15 @@ public class Ghost {
                     break;
             }
             if (nextY >= 0 && nextY < map.length && nextX >= 0 && nextX < map[0].length) {
-                if (map[nextY][nextX] == 9 && !GameManager.isGateOpen) {
+                if (map[nextY][nextX] == 9 && !GameConfig.gateOpen) {
                     currentDirection = getOpposite(currentDirection);
                 }
             }
         }
 
         int currentSpeed = speed;
-        int gridX = x / GameManager.TILE_SIZE;
-        int gridY = y / GameManager.TILE_SIZE;
+        int gridX = x / GameConfig.TILE_SIZE;
+        int gridY = y / GameConfig.TILE_SIZE;
         if (gridY >= 0 && gridY < map.length && gridX >= 0 && gridX < map[0].length) {
             int tile = map[gridY][gridX];
             if (tile >= 4 && tile <= 7) {
@@ -342,7 +342,7 @@ public class Ghost {
     }
 
     public void render(GraphicsContext gc) {
-        double size = GameManager.TILE_SIZE - 4;
+        double size = GameConfig.TILE_SIZE - 4;
         double offset = 2;
 
         if (state != GhostState.EYES) {

@@ -1,4 +1,4 @@
-package com.example.pacmangame;
+package com.example.pacmangame.dao;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,25 +13,25 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
-public final class LeaderboardManager {
+public final class LeaderboardDAO {
     private static final int DEFAULT_LIMIT = 10;
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withLocale(Locale.getDefault())
             .withZone(ZoneId.systemDefault());
 
-    private static LeaderboardManager instance;
+    private static LeaderboardDAO instance;
 
     private final Path storageFile;
     private final List<Entry> entries;
 
-    private LeaderboardManager() {
+    private LeaderboardDAO() {
         storageFile = Paths.get(System.getProperty("user.home"), ".pacman-game", "leaderboard.tsv");
         entries = loadEntries();
     }
 
-    public static synchronized LeaderboardManager getInstance() {
+    public static synchronized LeaderboardDAO getInstance() {
         if (instance == null) {
-            instance = new LeaderboardManager();
+            instance = new LeaderboardDAO();
         }
         return instance;
     }

@@ -1,4 +1,4 @@
-package com.example.pacmangame;
+package com.example.pacmangame.model;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
@@ -65,7 +65,7 @@ public class Pacman {
         // Chỉ cho phép rẽ/đổi hướng khi Pac-Man nằm khớp chính xác với ô lưới
         // (Grid-aligned)
         // Điều này đảm bảo Pac-Man không đi lệch khỏi đường ray.
-        if (x % GameManager.TILE_SIZE == 0 && y % GameManager.TILE_SIZE == 0) {
+        if (x % GameConfig.TILE_SIZE == 0 && y % GameConfig.TILE_SIZE == 0) {
 
             // 1. Kiểm tra xem hướng đệm (nextDirection) có hợp lệ không (có bị tường chặn
             // không)
@@ -89,8 +89,8 @@ public class Pacman {
         int currentSpeed = speed;
 
         // Kiểm tra Băng chuyền (Conveyor) để thay đổi tốc độ
-        int gridX = x / GameManager.TILE_SIZE;
-        int gridY = y / GameManager.TILE_SIZE;
+        int gridX = x / GameConfig.TILE_SIZE;
+        int gridY = y / GameConfig.TILE_SIZE;
         if (gridY >= 0 && gridY < map.length && gridX >= 0 && gridX < map[0].length) {
             int tile = map[gridY][gridX];
             if (tile >= 4 && tile <= 7) {
@@ -148,8 +148,8 @@ public class Pacman {
             return false;
 
         // Tính ra chỉ số cột (col) và hàng (row) hiện tại của Pac-Man trên mảng 2D
-        int currentGridX = x / GameManager.TILE_SIZE;
-        int currentGridY = y / GameManager.TILE_SIZE;
+int currentGridX = x / GameConfig.TILE_SIZE;
+            int currentGridY = y / GameConfig.TILE_SIZE;
 
         int nextGridX = currentGridX;
         int nextGridY = currentGridY;
@@ -180,7 +180,7 @@ public class Pacman {
         // Kiểm tra xem ô tiếp theo có phải là Tường (1) hoặc Cửa sập đóng (9) không
         if (map[nextGridY][nextGridX] == 1)
             return false;
-        if (map[nextGridY][nextGridX] == 9 && !GameManager.isGateOpen)
+        if (map[nextGridY][nextGridX] == 9 && !GameConfig.gateOpen)
             return false;
 
         return true;
@@ -189,7 +189,7 @@ public class Pacman {
     public void render(GraphicsContext gc) {
         gc.setFill(Color.YELLOW);
 
-        double size = GameManager.TILE_SIZE - 4;
+        double size = GameConfig.TILE_SIZE - 4;
         double offset = 2;
 
         // Tính toán góc há miệng
@@ -219,10 +219,10 @@ public class Pacman {
     }
 
     public int getGridX() {
-        return x / GameManager.TILE_SIZE;
+        return x / GameConfig.TILE_SIZE;
     }
 
     public int getGridY() {
-        return y / GameManager.TILE_SIZE;
+        return y / GameConfig.TILE_SIZE;
     }
 }

@@ -1,5 +1,16 @@
-package com.example.pacmangame;
+package com.example.pacmangame.controller;
 
+import com.example.pacmangame.dao.GameSessionDAO;
+import com.example.pacmangame.model.Direction;
+import com.example.pacmangame.model.GameConfig;
+import com.example.pacmangame.model.GameState;
+import com.example.pacmangame.model.Ghost;
+import com.example.pacmangame.model.GhostState;
+import com.example.pacmangame.model.GhostType;
+import com.example.pacmangame.model.MapManager;
+import com.example.pacmangame.model.Pacman;
+import com.example.pacmangame.model.SoundManager;
+import com.example.pacmangame.view.GameView;
 import javafx.animation.AnimationTimer;
 import javafx.scene.canvas.Canvas;
 import javafx.scene.canvas.GraphicsContext;
@@ -13,14 +24,11 @@ import javafx.scene.text.FontWeight;
 import java.util.ArrayList;
 import java.util.List;
 
-public class GameManager {
-    public static final int TILE_SIZE = 32;
-
+public class GameController {
     private int[][] map;
     private int cols = 20;
     private int rows = 19;
 
-    public static boolean isGateOpen = false;
     private int lastPacmanGridX = -1;
     private int lastPacmanGridY = -1;
 
@@ -30,7 +38,7 @@ public class GameManager {
 
     private Pacman pacman;
     private List<Ghost> ghosts; // Quản lý danh sách các con ma
-    private UIManager uiManager;
+    private GameView gameView;
 
     private int score = 0;
     private int lives = 3;
@@ -48,8 +56,8 @@ public class GameManager {
 
     private GameState gameState = GameState.MENU;
 
-    public GameManager() {
-        canvas = new Canvas(cols * TILE_SIZE, rows * TILE_SIZE);
+    public GameController() {
+        canvas = new Canvas(cols * GameConfig.TILE_SIZE, rows * GameConfig.TILE_SIZE);
         gc = canvas.getGraphicsContext2D();
 
         ghosts = new ArrayList<>();
@@ -62,7 +70,7 @@ public class GameManager {
         int[][] newMap = MapManager.loadMap(level);
         map = new int[rows][cols];
         totalDots = 0;
-        isGateOpen = false; // Đóng cửa sập khi bắt đầu level mới
+        GameConfig.gateOpen = false; // Đóng cửa sập khi bắt đầu level mới
 
         for (int r = 0; r < rows; r++) {
             for (int c = 0; c < cols; c++) {
@@ -77,17 +85,17 @@ public class GameManager {
 
     private void resetPositions() {
         // Khởi tạo Pac-Man (Ở hàng 12, cột 9 là ô trống ngay dưới chuồng ma)
-        pacman = new Pacman(9 * TILE_SIZE, 12 * TILE_SIZE);
+        pacman = new Pacman(9 * GameConfig.TILE_SIZE, 12 * GameConfig.TILE_SIZE);
 
         ghosts.clear();
         // Khởi tạo Blinky (Đỏ) - Xuất phát ngoài chuồng (Hàng 8, cột 9)
-        ghosts.add(new Ghost(9 * TILE_SIZE, 8 * TILE_SIZE, GhostType.BLINKY));
+        ghosts.add(new Ghost(9 * GameConfig.TILE_SIZE, 8 * GameConfig.TILE_SIZE, GhostType.BLINKY));
         // Khởi tạo Pinky (Hồng) - Xuất phát trong chuồng
-        ghosts.add(new Ghost(9 * TILE_SIZE, 9 * TILE_SIZE, GhostType.PINKY));
+        ghosts.add(new Ghost(9 * GameConfig.TILE_SIZE, 9 * GameConfig.TILE_SIZE, GhostType.PINKY));
         // Khởi tạo Inky (Xanh) - Xuất phát trong chuồng
-        ghosts.add(new Ghost(10 * TILE_SIZE, 9 * TILE_SIZE, GhostType.INKY));
+        ghosts.add(new Ghost(10 * GameConfig.TILE_SIZE, 9 * GameConfig.TILE_SIZE, GhostType.INKY));
         // Khởi tạo Clyde (Cam) - Xuất phát trong chuồng (x=9, y=10 để không dính tường)
-        ghosts.add(new Ghost(9 * TILE_SIZE, 10 * TILE_SIZE, GhostType.CLYDE));
+        ghosts.add(new Ghost(9 * GameConfig.TILE_SIZE, 10 * GameConfig.TILE_SIZE, GhostType.CLYDE));
 
         pacman.setSpeed(2);
         for (Ghost g : ghosts) {
@@ -149,15 +157,15 @@ public class GameManager {
             pacman.setNextDirection(Direction.RIGHT);
         } else if (code == KeyCode.ESCAPE) {
             if (gameState == GameState.PLAYING) {
-                uiManager.showPauseMenu();
+                gameView.showPauseMenu();
             } else if (gameState == GameState.PAUSED) {
-                uiManager.showGame();
+                gameView.showGame();
             }
         }
     }
 
-    public void setUIManager(UIManager uiManager) {
-        this.uiManager = uiManager;
+    public void setGameView(GameView gameView) {
+        this.gameView = gameView;
     }
 
     public void setGameState(GameState state) {
@@ -173,7 +181,7 @@ public class GameManager {
     }
 
     public boolean hasSavedGame() {
-        return GameSessionStore.getInstance().hasSave();
+        return GameSessionDAO.getInstance().hasSave();
     }
 
     public boolean canContinueGame() {
@@ -185,11 +193,11 @@ public class GameManager {
             return false;
         }
 
-        return GameSessionStore.getInstance().save(captureSnapshot());
+        return GameSessionDAO.getInstance().save(captureSnapshot());
     }
 
     public boolean continueSavedGame() {
-        GameSessionStore.Snapshot snapshot = GameSessionStore.getInstance().load();
+        GameSessionDAO.Snapshot snapshot = GameSessionDAO.getInstance().load();
         if (snapshot == null) {
             return false;
         }
@@ -199,7 +207,7 @@ public class GameManager {
     }
 
     public void clearSavedGame() {
-        GameSessionStore.getInstance().clear();
+        GameSessionDAO.getInstance().clear();
     }
 
     public void resetGame() {
@@ -262,26 +270,26 @@ public class GameManager {
     // Xử lý điệu kiện đường hầm (đi ra cạnh trái vòng sang phải)
     private void teleportEntity(Pacman p) {
         if (p.getX() < 0)
-            p.setX((int) (canvas.getWidth() - TILE_SIZE));
+            p.setX((int) (canvas.getWidth() - GameConfig.TILE_SIZE));
         if (p.getX() >= canvas.getWidth())
             p.setX(0);
     }
 
     private void teleportEntity(Ghost g) {
         if (g.getX() < 0)
-            g.setX((int) (canvas.getWidth() - TILE_SIZE));
+            g.setX((int) (canvas.getWidth() - GameConfig.TILE_SIZE));
         if (g.getX() >= canvas.getWidth())
             g.setX(0);
     }
 
     private void checkEat() {
-        if (pacman.getX() % TILE_SIZE == 0 && pacman.getY() % TILE_SIZE == 0) {
+        if (pacman.getX() % GameConfig.TILE_SIZE == 0 && pacman.getY() % GameConfig.TILE_SIZE == 0) {
             int gridX = pacman.getGridX();
             int gridY = pacman.getGridY();
 
             // Xử lý giẫm lên Công tắc (Switch = 8)
             if ((gridX != lastPacmanGridX || gridY != lastPacmanGridY) && map[gridY][gridX] == 8) {
-                isGateOpen = !isGateOpen;
+                GameConfig.gateOpen = !GameConfig.gateOpen;
                 SoundManager.getInstance().playSound("powerup"); // Chơi âm thanh khi bật công tắc
                 lastPacmanGridX = gridX;
                 lastPacmanGridY = gridY;
@@ -333,7 +341,7 @@ public class GameManager {
             double dy = pacman.getY() - g.getY();
             double distance = Math.sqrt(dx * dx + dy * dy);
 
-            if (distance < TILE_SIZE - 4) {
+            if (distance < GameConfig.TILE_SIZE - 4) {
                 if (g.getState() == GhostState.CHASE || g.getState() == GhostState.SCATTER) {
                     SoundManager.getInstance().playSound("death");
                     System.out.println("[DEBUG] Collision with ghost " + g.getType() + " at (pacman=" + pacman.getX()
@@ -348,8 +356,8 @@ public class GameManager {
                         isGameOver = true;
                         gameStarted = false;
                         clearSavedGame();
-                        if (uiManager != null) {
-                            uiManager.showGameOver(score);
+                        if (gameView != null) {
+                            gameView.showGameOver(score);
                         }
                     } else {
                         resetPositions();
@@ -371,29 +379,29 @@ public class GameManager {
 
         for (int row = 0; row < rows; row++) {
             for (int col = 0; col < cols; col++) {
-                int tileX = col * TILE_SIZE;
-                int tileY = row * TILE_SIZE;
+int tileX = col * GameConfig.TILE_SIZE;
+            int tileY = row * GameConfig.TILE_SIZE;
 
                 if (map[row][col] == 1) {
                     if (level == 1) {
                         // Tường neon retro xanh lơ
                         gc.setFill(Color.rgb(0, 0, 80));
-                        gc.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                        gc.fillRect(tileX, tileY, GameConfig.TILE_SIZE, GameConfig.TILE_SIZE);
                         gc.setStroke(Color.CYAN);
                         gc.setLineWidth(2);
-                        gc.strokeRoundRect(tileX + 2, tileY + 2, TILE_SIZE - 4, TILE_SIZE - 4, 8, 8);
+                        gc.strokeRoundRect(tileX + 2, tileY + 2, GameConfig.TILE_SIZE - 4, GameConfig.TILE_SIZE - 4, 8, 8);
                     } else {
                         // Phân Xưởng Cơ Học: Tường màu Đồng/Cam
                         gc.setFill(Color.rgb(80, 40, 0));
-                        gc.fillRect(tileX, tileY, TILE_SIZE, TILE_SIZE);
+                        gc.fillRect(tileX, tileY, GameConfig.TILE_SIZE, GameConfig.TILE_SIZE);
                         gc.setStroke(Color.ORANGE);
                         gc.setLineWidth(2);
-                        gc.strokeRoundRect(tileX + 2, tileY + 2, TILE_SIZE - 4, TILE_SIZE - 4, 8, 8);
+                        gc.strokeRoundRect(tileX + 2, tileY + 2, GameConfig.TILE_SIZE - 4, GameConfig.TILE_SIZE - 4, 8, 8);
                     }
                 } else if (map[row][col] == 2) {
                     gc.setFill(Color.WHITE);
                     double dotSize = 6;
-                    double offset = (TILE_SIZE - dotSize) / 2.0;
+                    double offset = (GameConfig.TILE_SIZE - dotSize) / 2.0;
                     gc.fillOval(tileX + offset, tileY + offset, dotSize, dotSize);
                 } else if (map[row][col] == 3) {
                     gc.setFill(Color.WHITE);
@@ -401,15 +409,15 @@ public class GameManager {
                     long time = System.currentTimeMillis();
                     double pulse = Math.sin(time / 150.0);
                     double dotSize = 12 + pulse * 3; // Kích thước dao động từ 9 đến 15
-                    double offset = (TILE_SIZE - dotSize) / 2.0;
+                    double offset = (GameConfig.TILE_SIZE - dotSize) / 2.0;
                     gc.fillOval(tileX + offset, tileY + offset, dotSize, dotSize);
                 } else if (map[row][col] >= 4 && map[row][col] <= 7) {
                     // Vẽ băng chuyền
                     gc.setFill(Color.rgb(100, 100, 100)); // Màu xám cho băng chuyền
-                    gc.fillRect(tileX + 2, tileY + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+                    gc.fillRect(tileX + 2, tileY + 2, GameConfig.TILE_SIZE - 4, GameConfig.TILE_SIZE - 4);
                     gc.setFill(Color.YELLOW);
-                    double cx = tileX + TILE_SIZE / 2.0;
-                    double cy = tileY + TILE_SIZE / 2.0;
+                    double cx = tileX + GameConfig.TILE_SIZE / 2.0;
+                    double cy = tileY + GameConfig.TILE_SIZE / 2.0;
                     // Vẽ mũi tên đơn giản
                     if (map[row][col] == 4)
                         gc.fillPolygon(new double[] { cx - 5, cx + 5, cx }, new double[] { cy + 5, cy + 5, cy - 5 }, 3); // UP
@@ -422,20 +430,20 @@ public class GameManager {
                 } else if (map[row][col] == 8) {
                     // Công tắc (Switch)
                     gc.setFill(Color.rgb(50, 50, 50));
-                    gc.fillRect(tileX + 4, tileY + 4, TILE_SIZE - 8, TILE_SIZE - 8);
-                    gc.setFill(isGateOpen ? Color.GREEN : Color.RED);
-                    gc.fillOval(tileX + 8, tileY + 8, TILE_SIZE - 16, TILE_SIZE - 16);
+                    gc.fillRect(tileX + 4, tileY + 4, GameConfig.TILE_SIZE - 8, GameConfig.TILE_SIZE - 8);
+                    gc.setFill(GameConfig.gateOpen ? Color.GREEN : Color.RED);
+                    gc.fillOval(tileX + 8, tileY + 8, GameConfig.TILE_SIZE - 16, GameConfig.TILE_SIZE - 16);
                 } else if (map[row][col] == 9) {
                     // Cửa sập (Gate)
-                    if (!isGateOpen) {
+                    if (!GameConfig.gateOpen) {
                         gc.setFill(Color.rgb(200, 0, 0)); // Đóng (màu đỏ)
-                        gc.fillRect(tileX, tileY + TILE_SIZE / 4.0, TILE_SIZE, TILE_SIZE / 2.0);
+                        gc.fillRect(tileX, tileY + GameConfig.TILE_SIZE / 4.0, GameConfig.TILE_SIZE, GameConfig.TILE_SIZE / 2.0);
                         gc.setStroke(Color.WHITE);
-                        gc.strokeLine(tileX, tileY + TILE_SIZE / 2.0, tileX + TILE_SIZE, tileY + TILE_SIZE / 2.0);
+                        gc.strokeLine(tileX, tileY + GameConfig.TILE_SIZE / 2.0, tileX + GameConfig.TILE_SIZE, tileY + GameConfig.TILE_SIZE / 2.0);
                     } else {
                         gc.setFill(Color.rgb(0, 100, 0, 0.5)); // Mở (màu xanh lá bán trong suốt)
-                        gc.fillRect(tileX, tileY, TILE_SIZE, 4);
-                        gc.fillRect(tileX, tileY + TILE_SIZE - 4, TILE_SIZE, 4);
+                        gc.fillRect(tileX, tileY, GameConfig.TILE_SIZE, 4);
+                        gc.fillRect(tileX, tileY + GameConfig.TILE_SIZE - 4, GameConfig.TILE_SIZE, 4);
                     }
                 }
             }
@@ -455,10 +463,10 @@ public class GameManager {
         gc.fillText("LEVEL: " + level, canvas.getWidth() / 2 - 30, 20);
     }
 
-    private GameSessionStore.Snapshot captureSnapshot() {
-        List<GameSessionStore.GhostSnapshot> ghostSnapshots = new ArrayList<>();
+    private GameSessionDAO.Snapshot captureSnapshot() {
+        List<GameSessionDAO.GhostSnapshot> ghostSnapshots = new ArrayList<>();
         for (Ghost ghost : ghosts) {
-            ghostSnapshots.add(new GameSessionStore.GhostSnapshot(ghost.getType(), ghost.getX(), ghost.getY(),
+            ghostSnapshots.add(new GameSessionDAO.GhostSnapshot(ghost.getType(), ghost.getX(), ghost.getY(),
                     ghost.getSpeed(), ghost.getState(), ghost.getCurrentDirection()));
         }
 
@@ -467,12 +475,12 @@ public class GameManager {
             System.arraycopy(map[row], 0, mapCopy[row], 0, map[row].length);
         }
 
-        return new GameSessionStore.Snapshot(score, lives, comboMultiplier, extraLifeGiven, level, totalDots,
-                isGateOpen, lastPacmanGridX, lastPacmanGridY, pacman.getX(), pacman.getY(),
+        return new GameSessionDAO.Snapshot(score, lives, comboMultiplier, extraLifeGiven, level, totalDots,
+                GameConfig.gateOpen, lastPacmanGridX, lastPacmanGridY, pacman.getX(), pacman.getY(),
                 pacman.getCurrentDirection(), pacman.getNextDirection(), mapCopy, ghostSnapshots);
     }
 
-    private void applySnapshot(GameSessionStore.Snapshot snapshot) {
+    private void applySnapshot(GameSessionDAO.Snapshot snapshot) {
         System.out.println("[DEBUG] Applying snapshot: lives=" + snapshot.lives() + ", score=" + snapshot.score()
                 + ", level=" + snapshot.level());
         score = snapshot.score();
@@ -481,7 +489,7 @@ public class GameManager {
         extraLifeGiven = snapshot.extraLifeGiven();
         level = snapshot.level();
         totalDots = snapshot.totalDots();
-        isGateOpen = snapshot.isGateOpen();
+        GameConfig.gateOpen = snapshot.isGateOpen();
         lastPacmanGridX = snapshot.lastPacmanGridX();
         lastPacmanGridY = snapshot.lastPacmanGridY();
         map = snapshot.map();
@@ -492,7 +500,7 @@ public class GameManager {
         pacman.setNextDirection(snapshot.pacmanNextDirection());
 
         ghosts = new ArrayList<>();
-        for (GameSessionStore.GhostSnapshot ghostSnapshot : snapshot.ghostSnapshots()) {
+        for (GameSessionDAO.GhostSnapshot ghostSnapshot : snapshot.ghostSnapshots()) {
             Ghost ghost = new Ghost(ghostSnapshot.x(), ghostSnapshot.y(), ghostSnapshot.type());
             ghost.setSpeed(1);
             ghost.setState(ghostSnapshot.state());
