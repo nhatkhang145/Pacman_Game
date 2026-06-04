@@ -4,12 +4,19 @@ import com.example.pacmangame.controller.GameController;
 import com.example.pacmangame.dao.LeaderboardDAO;
 import com.example.pacmangame.model.GameState;
 import com.example.pacmangame.model.SettingsManager;
+import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.effect.DropShadow;
 import javafx.scene.layout.*;
+import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
+import javafx.stage.Modality;
+import javafx.stage.Stage;
+import javafx.util.StringConverter;
 
 public class GameView {
     private StackPane root;
@@ -47,6 +54,12 @@ public class GameView {
     private Button btnGameOverSave;
     private Button btnGameOverLeaderboard;
     private Button btnGameOverQuit;
+
+    private enum LeaderboardMode {
+        TOP_SCORES,
+        RECENT_RUNS
+    }
+
 
     public GameView(GameController gameController) {
         this.gameController = gameController;
@@ -341,23 +354,167 @@ public class GameView {
     public void showLeaderboard() {
         boolean isVi = SettingsManager.getInstance().getLanguage() == SettingsManager.Language.VI;
         String title = isVi ? "BẢNG XẾP HẠNG OFFLINE" : "OFFLINE LEADERBOARD";
-        String content = LeaderboardDAO.getInstance().buildLeaderboardText(10, isVi);
+        showLeaderboardWindow(title, isVi);
+    }
 
-        Alert alert = new Alert(Alert.AlertType.INFORMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
+    private void showLeaderboardWindow(String title, boolean isVi) {
+        Stage stage = new Stage();
+        stage.initOwner(root.getScene().getWindow());
+        stage.initModality(Modality.APPLICATION_MODAL);
+        stage.setTitle(title);
 
-        TextArea area = new TextArea(content);
+        VBox container = new VBox(16);
+        container.setPadding(new Insets(18, 22, 20, 22));
+        container.setStyle("-fx-background-color: linear-gradient(to bottom, #0a0f1a, #0d1b2a);"
+            + "-fx-border-color: #1b263b; -fx-border-width: 2; -fx-border-radius: 12;"
+            + "-fx-background-radius: 12;");
+
+        Text header = new Text(title);
+        header.setFont(Font.font("Verdana", FontWeight.EXTRA_BOLD, 26));
+        header.setFill(Color.web("#ffd166"));
+        header.setEffect(new DropShadow(12, Color.web("#000000")));
+
+        Text subtitle = new Text(isVi ? "Tổng hợp thành tích và lịch sử gần đây" : "Top performance and recent runs");
+        subtitle.setFont(Font.font("Verdana", FontWeight.NORMAL, 12));
+        subtitle.setFill(Color.web("#b7c5d6"));
+
+        Label modeLabel = new Label(isVi ? "Chế độ" : "View");
+        modeLabel.setTextFill(Color.web("#b7c5d6"));
+        ChoiceBox<LeaderboardMode> modeChoice = new ChoiceBox<>();
+        modeChoice.getItems().addAll(LeaderboardMode.TOP_SCORES, LeaderboardMode.RECENT_RUNS);
+        modeChoice.setValue(LeaderboardMode.TOP_SCORES);
+        modeChoice.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(LeaderboardMode mode) {
+                if (mode == null) {
+                    return "";
+                }
+                return switch (mode) {
+                    case TOP_SCORES -> isVi ? "Top điểm" : "Top scores";
+                    case RECENT_RUNS -> isVi ? "Lịch sử gần đây" : "Recent runs";
+                };
+            }
+
+            @Override
+            public LeaderboardMode fromString(String string) {
+                return LeaderboardMode.TOP_SCORES;
+            }
+        });
+
+        Label periodLabel = new Label(isVi ? "Thời gian" : "Period");
+        periodLabel.setTextFill(Color.web("#b7c5d6"));
+        ChoiceBox<LeaderboardDAO.Period> periodChoice = new ChoiceBox<>();
+        periodChoice.getItems().addAll(LeaderboardDAO.Period.ALL, LeaderboardDAO.Period.DAY,
+                LeaderboardDAO.Period.WEEK, LeaderboardDAO.Period.MONTH);
+        periodChoice.setValue(LeaderboardDAO.Period.ALL);
+        periodChoice.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(LeaderboardDAO.Period period) {
+                if (period == null) {
+                    return "";
+                }
+                return switch (period) {
+                    case ALL -> isVi ? "Tất cả" : "All";
+                    case DAY -> isVi ? "24 giờ" : "24 hours";
+                    case WEEK -> isVi ? "7 ngày" : "7 days";
+                    case MONTH -> isVi ? "30 ngày" : "30 days";
+                };
+            }
+
+            @Override
+            public LeaderboardDAO.Period fromString(String string) {
+                return LeaderboardDAO.Period.ALL;
+            }
+        });
+
+        Label playerLabel = new Label(isVi ? "Người chơi" : "Player");
+        playerLabel.setTextFill(Color.web("#b7c5d6"));
+        TextField playerField = new TextField();
+        playerField.setPromptText(isVi ? "Bỏ trống để tất cả" : "Leave empty for all");
+        playerField.setStyle("-fx-background-color: #0b1320; -fx-text-fill: #e9ecef;"
+                + "-fx-border-color: #1f2f46; -fx-border-radius: 6; -fx-background-radius: 6;");
+
+        Button btnApply = new Button(isVi ? "ÁP DỤNG" : "APPLY");
+        btnApply.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
+        btnApply.setStyle("-fx-background-color: #4cc9f0; -fx-text-fill: #0b1320;"
+                + "-fx-background-radius: 6; -fx-padding: 6 14; -fx-cursor: hand;");
+
+        Button btnClear = new Button(isVi ? "XÓA LỌC" : "CLEAR");
+        btnClear.setFont(Font.font("Verdana", FontWeight.BOLD, 12));
+        btnClear.setStyle("-fx-background-color: #1f2f46; -fx-text-fill: #e9ecef;"
+                + "-fx-background-radius: 6; -fx-padding: 6 14; -fx-cursor: hand;");
+
+        TextArea area = new TextArea();
         area.setEditable(false);
         area.setWrapText(false);
-        area.setPrefColumnCount(30);
-        area.setPrefRowCount(12);
-        area.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 13px;");
+        area.setPrefColumnCount(36);
+        area.setPrefRowCount(16);
+        area.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 13px; -fx-control-inner-background: #0b1320;"
+            + "-fx-text-fill: #e9ecef; -fx-highlight-fill: #4361ee; -fx-border-color: #1f2f46;"
+            + "-fx-border-radius: 8; -fx-background-radius: 8;");
 
-        alert.getDialogPane().setContent(area);
-        alert.getDialogPane().setPrefWidth(420);
-        alert.getDialogPane().setPrefHeight(360);
-        alert.showAndWait();
+        Runnable refresh = () -> {
+            LeaderboardMode mode = modeChoice.getValue();
+            LeaderboardDAO.Period period = periodChoice.getValue();
+            String playerFilter = playerField.getText();
+            area.setText(buildLeaderboardContent(mode, period, playerFilter, isVi));
+        };
+
+        btnApply.setOnAction(e -> refresh.run());
+        btnClear.setOnAction(e -> {
+            modeChoice.setValue(LeaderboardMode.TOP_SCORES);
+            periodChoice.setValue(LeaderboardDAO.Period.ALL);
+            playerField.clear();
+            refresh.run();
+        });
+
+        modeChoice.setOnAction(e -> refresh.run());
+        periodChoice.setOnAction(e -> refresh.run());
+        playerField.setOnAction(e -> refresh.run());
+
+        HBox footer = new HBox(12);
+        footer.setAlignment(Pos.CENTER_RIGHT);
+
+        Button btnClose = new Button(isVi ? "ĐÓNG" : "CLOSE");
+        btnClose.setFont(Font.font("Verdana", FontWeight.BOLD, 14));
+        btnClose.setStyle("-fx-background-color: #fcbf49; -fx-text-fill: #1b1b1b;"
+            + "-fx-background-radius: 6; -fx-padding: 6 16; -fx-cursor: hand;");
+        btnClose.setOnAction(e -> stage.close());
+
+        footer.getChildren().add(btnClose);
+
+        GridPane filterGrid = new GridPane();
+        filterGrid.setHgap(12);
+        filterGrid.setVgap(8);
+        filterGrid.add(modeLabel, 0, 0);
+        filterGrid.add(modeChoice, 1, 0);
+        filterGrid.add(periodLabel, 2, 0);
+        filterGrid.add(periodChoice, 3, 0);
+        filterGrid.add(playerLabel, 0, 1);
+        filterGrid.add(playerField, 1, 1, 3, 1);
+
+        HBox filterActions = new HBox(10, btnClear, btnApply);
+        filterActions.setAlignment(Pos.CENTER_RIGHT);
+
+        VBox filtersBox = new VBox(10, filterGrid, filterActions);
+        filtersBox.setPadding(new Insets(6, 0, 6, 0));
+
+        container.getChildren().addAll(header, subtitle, filtersBox, area, footer);
+
+        refresh.run();
+
+        Scene scene = new Scene(container, 520, 440);
+        stage.setScene(scene);
+        stage.showAndWait();
+    }
+
+    private String buildLeaderboardContent(LeaderboardMode mode, LeaderboardDAO.Period period, String playerFilter,
+            boolean isVi) {
+        if (mode == LeaderboardMode.RECENT_RUNS) {
+            return LeaderboardDAO.getInstance().buildRecentRunsText(20, isVi, period, playerFilter);
+        }
+
+        return LeaderboardDAO.getInstance().buildLeaderboardTextFiltered(10, isVi, period, playerFilter);
     }
 
     // UC-08 - Hệ thống cài đặt

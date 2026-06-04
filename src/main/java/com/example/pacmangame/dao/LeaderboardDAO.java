@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -15,6 +16,7 @@ import java.util.Locale;
 
 public final class LeaderboardDAO {
     private static final int DEFAULT_LIMIT = 10;
+    private static final int HISTORY_LIMIT = 200;
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
             .withLocale(Locale.getDefault())
             .withZone(ZoneId.systemDefault());
@@ -22,11 +24,15 @@ public final class LeaderboardDAO {
     private static LeaderboardDAO instance;
 
     private final Path storageFile;
+    private final Path historyFile;
     private final List<Entry> entries;
+    private final List<Entry> historyEntries;
 
     private LeaderboardDAO() {
         storageFile = Paths.get(System.getProperty("user.home"), ".pacman-game", "leaderboard.tsv");
+        historyFile = Paths.get(System.getProperty("user.home"), ".pacman-game", "leaderboard_history.tsv");
         entries = loadEntries();
+        historyEntries = loadHistoryEntries();
     }
 
     public static synchronized LeaderboardDAO getInstance() {
@@ -43,14 +49,22 @@ public final class LeaderboardDAO {
         // Chức năng: Chuẩn hóa tên người chơi, lưu điểm mới và sắp xếp danh sách Top 10
         // theo nguyên tắc ưu tiên kép: Điểm giảm dần -> Thời gian tăng dần (nếu điểm
         // bằng nhau ưu tiên thời gian sớm hơn)
-        entries.add(new Entry(sanitizeName(playerName), score, System.currentTimeMillis()));
+        Entry entry = new Entry(sanitizeName(playerName), score, System.currentTimeMillis());
+        entries.add(entry);
         entries.sort(Comparator.comparingInt(Entry::score).reversed().thenComparingLong(Entry::timestamp));
 
         if (entries.size() > DEFAULT_LIMIT) {
             entries.subList(DEFAULT_LIMIT, entries.size()).clear();
         }
 
+        historyEntries.add(entry);
+        historyEntries.sort(Comparator.comparingLong(Entry::timestamp).reversed());
+        if (historyEntries.size() > HISTORY_LIMIT) {
+            historyEntries.subList(HISTORY_LIMIT, historyEntries.size()).clear();
+        }
+
         saveEntries();
+        saveHistoryEntries();
     }
 
     public synchronized boolean isHighScore(int score) {
@@ -77,6 +91,60 @@ public final class LeaderboardDAO {
         for (Entry entry : entries.subList(0, Math.min(limit, entries.size()))) {
             builder.append(String.format("%2d. %-12s %8d  %s", rank++, entry.name(), entry.score(),
                     TIME_FORMAT.format(Instant.ofEpochMilli(entry.timestamp()))));
+            builder.append(System.lineSeparator());
+        }
+
+        return builder.toString();
+    }
+
+    public synchronized String buildLeaderboardTextFiltered(int limit, boolean isVietnamese, Period period,
+            String playerFilter) {
+        List<Entry> source = historyEntries.isEmpty() ? entries : historyEntries;
+        List<Entry> filtered = filterEntries(source, period, playerFilter);
+        filtered.sort(Comparator.comparingInt(Entry::score).reversed().thenComparingLong(Entry::timestamp));
+
+        StringBuilder builder = new StringBuilder();
+        builder.append(isVietnamese ? "TOP ".concat(String.valueOf(limit)).concat(" ĐIỂM")
+                : "TOP ".concat(String.valueOf(limit)).concat(" SCORES"));
+        builder.append(System.lineSeparator()).append(System.lineSeparator());
+
+        if (filtered.isEmpty()) {
+            builder.append(isVietnamese ? "Chưa có dữ liệu." : "No scores yet.");
+            return builder.toString();
+        }
+
+        int rank = 1;
+        for (Entry entry : filtered.subList(0, Math.min(limit, filtered.size()))) {
+            builder.append(String.format("%2d. %-12s %8d  %s", rank++, entry.name(), entry.score(),
+                    TIME_FORMAT.format(Instant.ofEpochMilli(entry.timestamp()))));
+            builder.append(System.lineSeparator());
+        }
+
+        return builder.toString();
+    }
+
+    public synchronized String buildRecentRunsText(int limit, boolean isVietnamese, Period period,
+            String playerFilter) {
+        StringBuilder builder = new StringBuilder();
+        builder.append(isVietnamese ? "LỊCH SỬ GẦN ĐÂY" : "RECENT RUNS");
+        builder.append(System.lineSeparator()).append(System.lineSeparator());
+
+        if (historyEntries.isEmpty()) {
+            builder.append(isVietnamese ? "Chưa có dữ liệu." : "No runs yet.");
+            return builder.toString();
+        }
+
+        List<Entry> filtered = filterEntries(historyEntries, period, playerFilter);
+        filtered.sort(Comparator.comparingLong(Entry::timestamp).reversed());
+
+        if (filtered.isEmpty()) {
+            builder.append(isVietnamese ? "Không có bản ghi phù hợp." : "No matching runs.");
+            return builder.toString();
+        }
+
+        for (Entry entry : filtered.subList(0, Math.min(limit, filtered.size()))) {
+            builder.append(String.format("%s  %-12s %8d", TIME_FORMAT.format(Instant.ofEpochMilli(entry.timestamp())),
+                    entry.name(), entry.score()));
             builder.append(System.lineSeparator());
         }
 
@@ -114,6 +182,37 @@ public final class LeaderboardDAO {
         return loadedEntries;
     }
 
+    private List<Entry> loadHistoryEntries() {
+        List<Entry> loadedEntries = new ArrayList<>();
+
+        try {
+            if (!Files.exists(historyFile)) {
+                return loadedEntries;
+            }
+
+            for (String line : Files.readAllLines(historyFile, StandardCharsets.UTF_8)) {
+                String[] parts = line.split("\t", -1);
+                if (parts.length < 3) {
+                    continue;
+                }
+
+                String name = sanitizeName(parts[0]);
+                int score = Integer.parseInt(parts[1]);
+                long timestamp = Long.parseLong(parts[2]);
+                loadedEntries.add(new Entry(name, score, timestamp));
+            }
+
+            loadedEntries.sort(Comparator.comparingLong(Entry::timestamp).reversed());
+            if (loadedEntries.size() > HISTORY_LIMIT) {
+                loadedEntries.subList(HISTORY_LIMIT, loadedEntries.size()).clear();
+            }
+        } catch (IOException | NumberFormatException ex) {
+            loadedEntries.clear();
+        }
+
+        return loadedEntries;
+    }
+
     private void saveEntries() {
         try {
             Files.createDirectories(storageFile.getParent());
@@ -127,6 +226,56 @@ public final class LeaderboardDAO {
         } catch (IOException ex) {
             // Offline leaderboard should never block gameplay if saving fails.
         }
+    }
+
+    private void saveHistoryEntries() {
+        try {
+            Files.createDirectories(historyFile.getParent());
+
+            List<String> lines = new ArrayList<>();
+            for (Entry entry : historyEntries) {
+                lines.add(entry.name() + "\t" + entry.score() + "\t" + entry.timestamp());
+            }
+
+            Files.write(historyFile, lines, StandardCharsets.UTF_8);
+        } catch (IOException ex) {
+            // History saving failure should not interrupt gameplay.
+        }
+    }
+
+    private List<Entry> filterEntries(List<Entry> source, Period period, String playerFilter) {
+        List<Entry> filtered = new ArrayList<>();
+        String normalizedPlayer = sanitizeName(playerFilter).toLowerCase(Locale.getDefault());
+        boolean hasPlayerFilter = playerFilter != null && !playerFilter.trim().isEmpty();
+        Instant cutoff = getCutoffInstant(period);
+
+        for (Entry entry : source) {
+            if (cutoff != null && Instant.ofEpochMilli(entry.timestamp()).isBefore(cutoff)) {
+                continue;
+            }
+
+            if (hasPlayerFilter && !entry.name().toLowerCase(Locale.getDefault()).equals(normalizedPlayer)) {
+                continue;
+            }
+
+            filtered.add(entry);
+        }
+
+        return filtered;
+    }
+
+    private Instant getCutoffInstant(Period period) {
+        if (period == null || period == Period.ALL) {
+            return null;
+        }
+
+        Instant now = Instant.now();
+        return switch (period) {
+            case DAY -> now.minus(Duration.ofDays(1));
+            case WEEK -> now.minus(Duration.ofDays(7));
+            case MONTH -> now.minus(Duration.ofDays(30));
+            default -> null;
+        };
     }
 
     private static String sanitizeName(String playerName) {
@@ -146,6 +295,13 @@ public final class LeaderboardDAO {
         }
 
         return cleaned.length() > 12 ? cleaned.substring(0, 12) : cleaned;
+    }
+
+    public enum Period {
+        ALL,
+        DAY,
+        WEEK,
+        MONTH
     }
 
     private static final class Entry {
