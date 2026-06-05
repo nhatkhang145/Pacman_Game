@@ -56,6 +56,8 @@ public final class GameSessionDAO {
         properties.setProperty("pacmanY", Integer.toString(snapshot.pacmanY()));
         properties.setProperty("pacmanDirection", snapshot.pacmanDirection().name());
         properties.setProperty("pacmanNextDirection", snapshot.pacmanNextDirection().name());
+        properties.setProperty("nextExtraLifeIndex", Integer.toString(snapshot.nextExtraLifeIndex()));
+        properties.setProperty("invincibleRemainingMillis", Long.toString(snapshot.invincibleRemainingMillis()));
         properties.setProperty("map", encodeMap(snapshot.map()));
         properties.setProperty("ghostCount", Integer.toString(snapshot.ghostSnapshots().size()));
 
@@ -106,6 +108,8 @@ public final class GameSessionDAO {
                     .valueOf(properties.getProperty("pacmanDirection", Direction.NONE.name()));
             Direction pacmanNextDirection = Direction
                     .valueOf(properties.getProperty("pacmanNextDirection", Direction.NONE.name()));
+            int nextExtraLifeIndex = Integer.parseInt(properties.getProperty("nextExtraLifeIndex", "0"));
+            long invincibleRemainingMillis = Long.parseLong(properties.getProperty("invincibleRemainingMillis", "0"));
             int[][] map = decodeMap(properties.getProperty("map", ""));
             int ghostCount = Integer.parseInt(properties.getProperty("ghostCount", "0"));
 
@@ -125,7 +129,7 @@ public final class GameSessionDAO {
 
             return new Snapshot(score, lives, comboMultiplier, extraLifeGiven, level, totalDots, isGateOpen,
                     lastPacmanGridX, lastPacmanGridY, pacmanX, pacmanY, pacmanDirection, pacmanNextDirection, map,
-                    ghostSnapshots);
+                    ghostSnapshots, nextExtraLifeIndex, invincibleRemainingMillis);
         } catch (IOException | IllegalArgumentException ex) {
             clear();
             return null;
@@ -175,7 +179,8 @@ public final class GameSessionDAO {
 
     public record Snapshot(int score, int lives, int comboMultiplier, boolean extraLifeGiven, int level,
             int totalDots, boolean isGateOpen, int lastPacmanGridX, int lastPacmanGridY, int pacmanX, int pacmanY,
-            Direction pacmanDirection, Direction pacmanNextDirection, int[][] map, List<GhostSnapshot> ghostSnapshots) {
+            Direction pacmanDirection, Direction pacmanNextDirection, int[][] map, List<GhostSnapshot> ghostSnapshots,
+            int nextExtraLifeIndex, long invincibleRemainingMillis) {
     }
 
     public record GhostSnapshot(GhostType type, int x, int y, int speed, GhostState state, Direction direction) {
