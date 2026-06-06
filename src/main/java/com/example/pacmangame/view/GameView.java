@@ -9,6 +9,7 @@ import javafx.geometry.Pos;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
@@ -27,15 +28,28 @@ public class GameView {
     private GameController gameController;
     private GameState previousState = GameState.MENU;
 
-    // UI Elements
+    /** UC-15: Tham chieu Stage de dieu khien fullscreen */
+    private Stage primaryStage;
+
+    // --- Settings labels (can null-check in updateLanguage) ---
+    private Label lblVolume;
+    private Label lblLanguage;
+    private Label lblFullscreen;   // UC-15
+
+    // --- UC-14: Nut remap phim (hien thi phim hien tai, click de doi) ---
+    private Button btnRemapUp;
+    private Button btnRemapDown;
+    private Button btnRemapLeft;
+    private Button btnRemapRight;
+    private Button btnRemapPause;
+
+    // Menu buttons
     private Button btnPlay;
     private Button btnContinue;
     private Button btnSettings;
     private Button btnLeaderboard;
     private Button btnHowToPlay;
     private Button btnBack;
-    private Label lblVolume;
-    private Label lblLanguage;
     private Text titleMenu;
     private Text titleSettings;
 
@@ -61,9 +75,14 @@ public class GameView {
     }
 
 
-    public GameView(GameController gameController) {
+    /**
+     *   controller chinh cua game
+     *   cua so chinh, dung de bat/tat fullscreen 
+     */
+    public GameView(GameController gameController, Stage primaryStage) {
         this.gameController = gameController;
         this.gameController.setGameView(this);
+        this.primaryStage = primaryStage;  // UC-15: luu Stage de goi setFullScreen()
 
         this.root = new StackPane();
         this.root.setStyle("-fx-background-color: black;");
@@ -124,46 +143,160 @@ public class GameView {
         menuScreen.getChildren().addAll(titleMenu, btnPlay, btnContinue, btnLeaderboard, btnSettings, btnHowToPlay);
     }
 
+    /**
+     * UC-08 / UC-13 / UC-14 / UC-15
+     * Xay dung man hinh Settings gom 3 khu vuc:
+     *   1. Am thanh + Ngon ngu  (UC-08/UC-13)
+     *   2. Dieu khien           (UC-14) - chon thiet bi, remap 5 phim
+     *   3. Hien thi             (UC-15) - theme + fullscreen
+     */
     private void createSettingsScreen() {
-        settingsScreen = new VBox(20);
+        settingsScreen = new VBox(14);
         settingsScreen.setAlignment(Pos.CENTER);
         settingsScreen.setStyle("-fx-background-color: black;");
+        settingsScreen.setPadding(new Insets(20));
 
         titleSettings = new Text("SETTINGS");
         titleSettings.setFont(Font.font("Arial", FontWeight.BOLD, 40));
         titleSettings.setStyle("-fx-fill: yellow;");
 
-        lblVolume = new Label();
-        lblVolume.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        // ---- UC-08/UC-13: Am luong ----
+        // Lang nghe Slider de cap nhat volume theo thoi gian thuc.
+        lblVolume = new Label("AM LUONG:");
+        lblVolume.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         lblVolume.setStyle("-fx-text-fill: white;");
-
-        // UC-08 - Hệ thống cài đặt
-        // ID: UC-08
-        // Tên UC: Hệ thống cài đặt
-        // Chức năng: Lắng nghe sự kiện từ thanh trượt (Slider) để điều chỉnh âm lượng
-        // và xử lý ComboBox để cập nhật ngôn ngữ toàn bộ giao diện thời gian thực.
         Slider volumeSlider = new Slider(0, 100, 100);
-        volumeSlider.setMaxWidth(300);
-        volumeSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            SettingsManager.getInstance().setVolume(newVal.doubleValue() / 100.0);
-        });
+        volumeSlider.setMaxWidth(280);
+        volumeSlider.valueProperty().addListener((obs, o, n) ->
+                SettingsManager.getInstance().setVolume(n.doubleValue() / 100.0));
 
-        lblLanguage = new Label();
-        lblLanguage.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        // ---- UC-08: Ngon ngu ----
+        // Khi doi ngon ngu, goi updateLanguage() de lam moi toan bo text.
+        lblLanguage = new Label("NGON NGU:");
+        lblLanguage.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         lblLanguage.setStyle("-fx-text-fill: white;");
-
         ComboBox<SettingsManager.Language> langCombo = new ComboBox<>();
         langCombo.getItems().addAll(SettingsManager.Language.values());
-        langCombo.setValue(SettingsManager.Language.VI);
+        langCombo.setValue(SettingsManager.getInstance().getLanguage());
         langCombo.setOnAction(e -> {
             SettingsManager.getInstance().setLanguage(langCombo.getValue());
             updateLanguage();
         });
 
+        // UC-14: Tuy chinh dieu khien
+        Separator sep1 = new Separator();
+        sep1.setMaxWidth(320);
+
+
+        // --- Remap phim ---
+        // Moi hang gom: nhan hien thi + nut remap.
+        // Nhan nut → goi startKeyCapture() de cho nguoi choi nhan phim moi.
+        SettingsManager sm = SettingsManager.getInstance();
+        btnRemapUp    = buildRemapRow(sm.getKeyUp());
+        btnRemapDown  = buildRemapRow(sm.getKeyDown());
+        btnRemapLeft  = buildRemapRow(sm.getKeyLeft());
+        btnRemapRight = buildRemapRow(sm.getKeyRight());
+        btnRemapPause = buildRemapRow(sm.getKeyPause());
+
+        // Khi click, bat dau che do "doi phim": hien thi "...", cho nhan phim moi
+        btnRemapUp.setOnAction(e    -> startKeyCapture(btnRemapUp,    KeyAction.UP));
+        btnRemapDown.setOnAction(e  -> startKeyCapture(btnRemapDown,  KeyAction.DOWN));
+        btnRemapLeft.setOnAction(e  -> startKeyCapture(btnRemapLeft,  KeyAction.LEFT));
+        btnRemapRight.setOnAction(e -> startKeyCapture(btnRemapRight, KeyAction.RIGHT));
+        btnRemapPause.setOnAction(e -> startKeyCapture(btnRemapPause, KeyAction.PAUSE));
+
+        // GridPane: col 0 = nhan mo ta, col 1 = nut phim
+        GridPane remapGrid = new GridPane();
+        remapGrid.setHgap(10);
+        remapGrid.setVgap(6);
+        remapGrid.setAlignment(Pos.CENTER);
+        String[] labels = {"[Len]", "[Xuong]", "[Trai]", "[Phai]", "[Pause]"};
+        Button[] btns   = {btnRemapUp, btnRemapDown, btnRemapLeft, btnRemapRight, btnRemapPause};
+        for (int i = 0; i < labels.length; i++) {
+            Label lbl = new Label(labels[i]);
+            lbl.setStyle("-fx-text-fill: #aaa; -fx-font-size: 13px;");
+            remapGrid.add(lbl,    0, i);
+            remapGrid.add(btns[i], 1, i);
+        }
+
+
+        // --- Fullscreen ---
+        // UC-15: CheckBox gui lenh stage.setFullScreen() de bat/tat toan man hinh.
+        lblFullscreen = new Label("TOAN MAN HINH:");
+        lblFullscreen.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        lblFullscreen.setStyle("-fx-text-fill: white;");
+        CheckBox cbFullscreen = new CheckBox();
+        cbFullscreen.setSelected(SettingsManager.getInstance().isFullscreen());
+        cbFullscreen.setStyle("-fx-text-fill: white;");
+        cbFullscreen.setOnAction(e -> {
+            boolean on = cbFullscreen.isSelected();
+            SettingsManager.getInstance().setFullscreen(on);
+            if (primaryStage != null) primaryStage.setFullScreen(on);
+        });
+        HBox fsRow = new HBox(10, lblFullscreen, cbFullscreen);
+        fsRow.setAlignment(Pos.CENTER);
+
+        // --- Nut Quay lai ---
         btnBack = createRetroButton("");
         btnBack.setOnAction(e -> backFromSettings());
 
-        settingsScreen.getChildren().addAll(titleSettings, lblVolume, volumeSlider, lblLanguage, langCombo, btnBack);
+        settingsScreen.getChildren().addAll(
+                titleSettings,
+                lblVolume, volumeSlider,
+                lblLanguage, langCombo,
+                sep1,
+                remapGrid,
+                fsRow,
+                btnBack
+        );
+    }
+
+
+     // UC-14 – Tao mot nut hien thi phim hien tai.
+    private Button buildRemapRow(KeyCode key) {
+        Button btn = new Button(key.getName());
+        btn.setFont(Font.font("Consolas", FontWeight.BOLD, 13));
+        btn.setMinWidth(110);
+        btn.setStyle("-fx-background-color: #111; -fx-text-fill: yellow;"
+                + " -fx-border-color: #444; -fx-border-width: 2; -fx-border-radius: 4;"
+                + " -fx-background-radius: 4; -fx-cursor: hand;");
+        return btn;
+    }
+
+    private enum KeyAction { UP, DOWN, LEFT, RIGHT, PAUSE }
+
+
+     // UC-14 – Bat dau che do "cho phim moi".
+    private void startKeyCapture(Button targetBtn, KeyAction action) {
+        boolean isVi = SettingsManager.getInstance().getLanguage() == SettingsManager.Language.VI;
+        // Bao nguoi choi biet dang cho nhan phim
+        targetBtn.setText(isVi ? "... Nhan phim ..." : "... Press key ...");
+        targetBtn.setStyle("-fx-background-color: #1a1a5a; -fx-text-fill: cyan;"
+                + " -fx-border-color: cyan; -fx-border-width: 2; -fx-border-radius: 4;"
+                + " -fx-background-radius: 4;");
+        // Lang nghe phim ke tiep tren settingsScreen
+        settingsScreen.setOnKeyPressed(event -> {
+            KeyCode newKey = event.getCode();
+            SettingsManager sm = SettingsManager.getInstance();
+            // Ghi nhan phim moi vao SettingsManager theo hanh dong tuong ung
+            switch (action) {
+                case UP    -> sm.setKeyUp(newKey);
+                case DOWN  -> sm.setKeyDown(newKey);
+                case LEFT  -> sm.setKeyLeft(newKey);
+                case RIGHT -> sm.setKeyRight(newKey);
+                case PAUSE -> sm.setKeyPause(newKey);
+            }
+            // Cap nhat text nut ve phim moi va khoi phuc style binh thuong
+            targetBtn.setText(newKey.getName());
+            targetBtn.setStyle("-fx-background-color: #111; -fx-text-fill: yellow;"
+                    + " -fx-border-color: #444; -fx-border-width: 2; -fx-border-radius: 4;"
+                    + " -fx-background-radius: 4; -fx-cursor: hand;");
+            // Huy lang nghe sau khi da nhan duoc phim
+            settingsScreen.setOnKeyPressed(null);
+        });
+        // Cho settingsScreen nhan focus de bat duoc phim
+        settingsScreen.requestFocus();
+        settingsScreen.setFocusTraversable(true);
     }
 
     private void createPauseScreen() {
