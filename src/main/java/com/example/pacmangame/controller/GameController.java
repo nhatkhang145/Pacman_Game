@@ -48,12 +48,18 @@ public class GameController {
 
     private int level = 1;
     private int totalDots = 0;
+    private int initialDots = 0;
 
     private boolean isGameOver = false;
     private boolean gameStarted = false;
     private boolean isPaused = false;
     private long pauseEndTime = 0;
     private long frightenedEndTime = 0;
+
+    private boolean isInvincible = false;
+    private long invincibleEndTime = 0;
+    private int nextExtraLifeIndex = 0;
+    private static final int[] EXTRA_LIFE_SCORE_THRESHOLDS = {10000, 25000, 50000, 100000};
 
     private GameState gameState = GameState.MENU;
 
@@ -81,6 +87,7 @@ public class GameController {
                 }
             }
         }
+        initialDots = totalDots;
         resetPositions();
     }
 
@@ -239,6 +246,9 @@ public class GameController {
         level = 1;
         comboMultiplier = 1;
         extraLifeGiven = false;
+        nextExtraLifeIndex = 0;
+        isInvincible = false;
+        invincibleEndTime = 0;
         isGameOver = false;
         gameStarted = true;
         isPaused = false;
@@ -263,6 +273,10 @@ public class GameController {
             } else {
                 return;
             }
+        }
+
+        if (isInvincible && now > invincibleEndTime) {
+            isInvincible = false;
         }
 
         for (Ghost g : ghosts) {
@@ -352,13 +366,23 @@ public class GameController {
 
     private void addScore(int points) {
         score += points;
-        if (score >= 10000 && !extraLifeGiven) {
+        checkExtraLife();
+    }
+
+    private void checkExtraLife() {
+        while (nextExtraLifeIndex < EXTRA_LIFE_SCORE_THRESHOLDS.length &&
+                score >= EXTRA_LIFE_SCORE_THRESHOLDS[nextExtraLifeIndex]) {
             lives++;
+            nextExtraLifeIndex++;
             extraLifeGiven = true;
         }
     }
 
     private void checkCollisions() {
+        if (isInvincible) {
+            return;
+        }
+
         for (Ghost g : ghosts) {
             double dx = pacman.getX() - g.getX();
             double dy = pacman.getY() - g.getY();
@@ -384,6 +408,7 @@ public class GameController {
                         }
                     } else {
                         resetPositions();
+                        setInvincible(2000);
                     }
                     break; // Ngừng kiểm tra các ma khác
                 } else if (g.getState() == GhostState.FRIGHTENED) {
@@ -473,7 +498,12 @@ int tileX = col * GameConfig.TILE_SIZE;
         }
 
         if (!isGameOver) {
+            if (isInvincible) {
+                long blink = System.currentTimeMillis() % 400;
+                gc.setGlobalAlpha(blink < 200 ? 0.35 : 1.0);
+            }
             pacman.render(gc);
+            gc.setGlobalAlpha(1.0);
             for (Ghost g : ghosts) {
                 g.render(gc);
             }
@@ -482,8 +512,45 @@ int tileX = col * GameConfig.TILE_SIZE;
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         gc.fillText("SCORE: " + score, 10, 20);
-        gc.fillText("LIVES: " + lives, canvas.getWidth() - 90, 20);
-        gc.fillText("LEVEL: " + level, canvas.getWidth() / 2 - 30, 20);
+        gc.fillText("LEVEL: " + level, canvas.getWidth() / 2 - 36, 20);
+
+        int completionPercent = initialDots == 0 ? 100 : (int) Math.round(((double) (initialDots - totalDots) / initialDots) * 100);
+        gc.fillText("COMPLETED: " + completionPercent + "%", canvas.getWidth() / 2 - 70, 38);
+
+        if (isInvincible) {
+            gc.setFill(Color.LIME);
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+            gc.fillText("INVINCIBLE", 10, 54);
+        }
+
+        drawLives(gc);
+    }
+
+    private void drawLives(GraphicsContext gc) {
+        double heartSize = 12;
+        double startX = canvas.getWidth() - 90;
+        double y = 8;
+
+        for (int i = 0; i < lives; i++) {
+            double x = startX + i * (heartSize + 6);
+            gc.setFill(Color.RED);
+            gc.fillOval(x, y, heartSize / 2, heartSize / 2);
+            gc.fillOval(x + heartSize / 2, y, heartSize / 2, heartSize / 2);
+            gc.fillPolygon(new double[] { x, x + heartSize, x + heartSize / 2 },
+                    new double[] { y + heartSize / 3, y + heartSize / 3, y + heartSize }, 3);
+            gc.setStroke(Color.WHITE);
+            gc.setLineWidth(1);
+            gc.strokeOval(x, y, heartSize / 2, heartSize / 2);
+            gc.strokeOval(x + heartSize / 2, y, heartSize / 2, heartSize / 2);
+            gc.strokePolygon(new double[] { x, x + heartSize, x + heartSize / 2 },
+                    new double[] { y + heartSize / 3, y + heartSize / 3, y + heartSize }, 3);
+        }
+
+        if (lives > 6) {
+            gc.setFill(Color.WHITE);
+            gc.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+            gc.fillText("+" + (lives - 6), startX + 6 * (heartSize + 6), y + heartSize - 2);
+        }
     }
 
     private GameSessionDAO.Snapshot captureSnapshot() {
@@ -498,9 +565,15 @@ int tileX = col * GameConfig.TILE_SIZE;
             System.arraycopy(map[row], 0, mapCopy[row], 0, map[row].length);
         }
 
+        long invincibleRemaining = 0;
+        if (isInvincible) {
+            invincibleRemaining = Math.max(0, invincibleEndTime - System.currentTimeMillis());
+        }
+
         return new GameSessionDAO.Snapshot(score, lives, comboMultiplier, extraLifeGiven, level, totalDots,
                 GameConfig.gateOpen, lastPacmanGridX, lastPacmanGridY, pacman.getX(), pacman.getY(),
-                pacman.getCurrentDirection(), pacman.getNextDirection(), mapCopy, ghostSnapshots);
+                pacman.getCurrentDirection(), pacman.getNextDirection(), mapCopy, ghostSnapshots,
+                nextExtraLifeIndex, invincibleRemaining);
     }
 
     private void applySnapshot(GameSessionDAO.Snapshot snapshot) {
@@ -536,6 +609,14 @@ int tileX = col * GameConfig.TILE_SIZE;
         isPaused = false;
         pauseEndTime = 0;
         frightenedEndTime = 0;
+        nextExtraLifeIndex = snapshot.nextExtraLifeIndex();
+        invincibleEndTime = System.currentTimeMillis() + snapshot.invincibleRemainingMillis();
+        isInvincible = snapshot.invincibleRemainingMillis() > 0;
+    }
+
+    private void setInvincible(long millis) {
+        isInvincible = true;
+        invincibleEndTime = System.currentTimeMillis() + millis;
     }
 }
 

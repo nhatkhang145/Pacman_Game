@@ -5,5 +5,6 @@ public enum GameState {
     PLAYING,
     PAUSED,
     SETTINGS,
+    HOW_TO_PLAY,
     GAME_OVER
 }
