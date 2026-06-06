@@ -47,6 +47,7 @@ public class GameController {
 
     private int level = 1;
     private int totalDots = 0;
+    private int initialDots = 0;
 
     private boolean isGameOver = false;
     private boolean gameStarted = false;
@@ -85,6 +86,7 @@ public class GameController {
                 }
             }
         }
+        initialDots = totalDots;
         resetPositions();
     }
 
@@ -487,12 +489,15 @@ int tileX = col * GameConfig.TILE_SIZE;
         gc.setFill(Color.WHITE);
         gc.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         gc.fillText("SCORE: " + score, 10, 20);
-        gc.fillText("LEVEL: " + level, canvas.getWidth() / 2 - 30, 20);
+        gc.fillText("LEVEL: " + level, canvas.getWidth() / 2 - 36, 20);
+
+        int completionPercent = initialDots == 0 ? 100 : (int) Math.round(((double) (initialDots - totalDots) / initialDots) * 100);
+        gc.fillText("COMPLETED: " + completionPercent + "%", canvas.getWidth() / 2 - 70, 38);
 
         if (isInvincible) {
             gc.setFill(Color.LIME);
             gc.setFont(Font.font("Arial", FontWeight.BOLD, 12));
-            gc.fillText("INVINCIBLE", 10, 38);
+            gc.fillText("INVINCIBLE", 10, 54);
         }
 
         drawLives(gc);
