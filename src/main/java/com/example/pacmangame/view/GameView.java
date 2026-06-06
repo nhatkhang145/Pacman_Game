@@ -13,6 +13,8 @@ import javafx.scene.effect.DropShadow;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import java.util.Arrays;
+import java.util.List;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
@@ -31,6 +33,10 @@ public class GameView {
     private GameController gameController;
     private GameState previousState = GameState.MENU;
 
+    private int currentMenuIndex = 0;
+    private List<Button> menuButtons;
+
+    // UI Elements
     /** UC-15: Tham chieu Stage de dieu khien fullscreen */
     private Stage primaryStage;
 
@@ -148,6 +154,39 @@ public class GameView {
         btnHowToPlay.setOnAction(e -> showHowToPlay());
 
         menuScreen.getChildren().addAll(titleMenu, btnPlay, btnContinue, btnLeaderboard, btnSettings, btnHowToPlay);
+
+        menuButtons = Arrays.asList(btnPlay, btnContinue, btnLeaderboard, btnSettings, btnHowToPlay);
+        updateMenuSelection();
+    }
+
+    public void navigateMenu(int direction) {
+        if (menuButtons == null || menuButtons.isEmpty()) return;
+        
+        int newIndex = currentMenuIndex;
+        do {
+            newIndex = (newIndex + direction + menuButtons.size()) % menuButtons.size();
+        } while (newIndex != currentMenuIndex && menuButtons.get(newIndex).isDisabled());
+        
+        currentMenuIndex = newIndex;
+        updateMenuSelection();
+    }
+
+    public void selectCurrentMenu() {
+        if (menuButtons != null && !menuButtons.isEmpty() && !menuButtons.get(currentMenuIndex).isDisabled()) {
+            menuButtons.get(currentMenuIndex).fire();
+        }
+    }
+
+    public void updateMenuSelection() {
+        if (menuButtons == null) return;
+        for (int i = 0; i < menuButtons.size(); i++) {
+            Button btn = menuButtons.get(i);
+            if (i == currentMenuIndex) {
+                btn.setStyle("-fx-background-color: blue; -fx-text-fill: white; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;");
+            } else {
+                btn.setStyle("-fx-background-color: black; -fx-text-fill: yellow; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;");
+            }
+        }
     }
 
     /**
@@ -394,13 +433,23 @@ public class GameView {
         Button btn = new Button(text);
         btn.setFont(Font.font("Arial", FontWeight.BOLD, 18));
         btn.setMinWidth(200);
-        btn.setStyle(
-                "-fx-background-color: black; -fx-text-fill: yellow; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;");
+        btn.setStyle("-fx-background-color: black; -fx-text-fill: yellow; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;");
 
-        btn.setOnMouseEntered(e -> btn.setStyle(
-                "-fx-background-color: blue; -fx-text-fill: white; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;"));
-        btn.setOnMouseExited(e -> btn.setStyle(
-                "-fx-background-color: black; -fx-text-fill: yellow; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;"));
+        btn.setOnMouseEntered(e -> {
+            if (menuButtons != null && menuButtons.contains(btn)) {
+                currentMenuIndex = menuButtons.indexOf(btn);
+                updateMenuSelection();
+            } else {
+                btn.setStyle("-fx-background-color: blue; -fx-text-fill: white; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;");
+            }
+        });
+        btn.setOnMouseExited(e -> {
+            if (menuButtons != null && menuButtons.contains(btn)) {
+                updateMenuSelection();
+            } else {
+                btn.setStyle("-fx-background-color: black; -fx-text-fill: yellow; -fx-border-color: blue; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;");
+            }
+        });
 
         return btn;
     }
@@ -420,7 +469,9 @@ public class GameView {
             btnContinue.setDisable(false);
         } else {
             btnContinue.setDisable(true);
+            if (currentMenuIndex == 1) currentMenuIndex = 0;
         }
+        updateMenuSelection();
     }
 
     public void showSettings() {

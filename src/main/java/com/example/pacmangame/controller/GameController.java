@@ -169,6 +169,18 @@ public class GameController {
     public void handleKeyPress(KeyEvent event) {
         KeyCode code = event.getCode();
 
+        if (gameState == GameState.MENU) {
+            if (code == KeyCode.W || code == KeyCode.UP) {
+                gameView.navigateMenu(-1);
+            } else if (code == KeyCode.S || code == KeyCode.DOWN) {
+                gameView.navigateMenu(1);
+            } else if (code == KeyCode.ENTER) {
+                gameView.selectCurrentMenu();
+            }
+            return;
+        }
+
+        if (code == KeyCode.W || code == KeyCode.UP) {
         // Lấy bản đồ phím hiện tại từ SettingsManager (có thể đã được remap)
         SettingsManager sm = SettingsManager.getInstance();
 
