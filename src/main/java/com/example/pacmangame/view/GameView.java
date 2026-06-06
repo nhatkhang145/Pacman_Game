@@ -4,6 +4,7 @@ import com.example.pacmangame.controller.GameController;
 import com.example.pacmangame.dao.LeaderboardDAO;
 import com.example.pacmangame.model.GameState;
 import com.example.pacmangame.model.SettingsManager;
+import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
@@ -16,6 +17,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.text.Text;
 import javafx.stage.Modality;
 import javafx.stage.Stage;
+import javafx.util.Duration;
 import javafx.util.StringConverter;
 
 public class GameView {
@@ -104,14 +106,14 @@ public class GameView {
         btnPlay.setOnAction(e -> {
             gameController.clearSavedGame();
             gameController.resetGame();
-            showGame();
+            fadeToGame(menuScreen);
         });
 
         btnContinue = createRetroButton("");
         btnContinue.setDisable(true);
         btnContinue.setOnAction(e -> {
             if (gameController.continueSavedGame()) {
-                showGame();
+                fadeToGame(menuScreen);
             } else {
                 showAlert("Continue", "No saved game found.");
             }
@@ -201,7 +203,7 @@ public class GameView {
         titlePause.setStyle("-fx-fill: yellow;");
 
         btnResume = createRetroButton("");
-        btnResume.setOnAction(e -> showGame());
+        btnResume.setOnAction(e -> fadeToGame(pauseScreen));
 
         btnPauseSave = createRetroButton("");
         btnPauseSave.setOnAction(e -> notifySave(gameController.saveCurrentGame()));
@@ -239,7 +241,7 @@ public class GameView {
         btnPlayAgain.setOnAction(e -> {
             gameController.clearSavedGame();
             gameController.resetGame();
-            showGame();
+            fadeToGame(gameOverScreen);
         });
 
         btnGameOverSave = createRetroButton("");
@@ -596,6 +598,18 @@ public class GameView {
         btnGameOverLeaderboard.setText(isVi ? "BẢNG XẾP HẠNG" : "LEADERBOARD");
         btnGameOverQuit.setText(isVi ? "THOÁT" : "QUIT TO MENU");
         hintGameOver.setText(isVi ? "LƯU, CHƠI LẠI HOẶC VỀ MENU" : "SAVE, RESTART OR RETURN TO MENU");
+    }
+
+    private void fadeToGame(javafx.scene.Node screenToFade) {
+        FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.3), screenToFade);
+        fadeOut.setFromValue(1.0);
+        fadeOut.setToValue(0.0);
+        fadeOut.setOnFinished(e -> {
+            screenToFade.setVisible(false);
+            screenToFade.setOpacity(1.0);
+            showGame();
+        });
+        fadeOut.play();
     }
 
     private void showAlert(String title, String content) {
