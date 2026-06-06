@@ -22,6 +22,7 @@ public class GameView {
     private StackPane root;
     private VBox menuScreen;
     private VBox settingsScreen;
+    private VBox howToPlayScreen;
     private VBox pauseScreen;
     private VBox gameOverScreen;
     private GameController gameController;
@@ -38,6 +39,9 @@ public class GameView {
     private Label lblLanguage;
     private Text titleMenu;
     private Text titleSettings;
+    private Text titleHowToPlay;
+    private Text instructionsText;
+    private Button btnBackFromHowToPlay;
 
     // Pause UI
     private Text titlePause;
@@ -70,13 +74,14 @@ public class GameView {
 
         createMenuScreen();
         createSettingsScreen();
+        createHowToPlayScreen();
         createPauseScreen();
         createGameOverScreen();
 
         // Ensure canvas can receive focus for key events
         gameController.getCanvas().setFocusTraversable(true);
 
-        root.getChildren().addAll(gameController.getCanvas(), settingsScreen, pauseScreen, gameOverScreen, menuScreen);
+        root.getChildren().addAll(gameController.getCanvas(), settingsScreen, howToPlayScreen, pauseScreen, gameOverScreen, menuScreen);
 
         showMenu();
         updateLanguage();
@@ -119,7 +124,7 @@ public class GameView {
         btnSettings.setOnAction(e -> showSettings());
 
         btnHowToPlay = createRetroButton("");
-        btnHowToPlay.setOnAction(e -> showAlert("How to Play", "Coming Soon!"));
+        btnHowToPlay.setOnAction(e -> showHowToPlay());
 
         menuScreen.getChildren().addAll(titleMenu, btnPlay, btnContinue, btnLeaderboard, btnSettings, btnHowToPlay);
     }
@@ -164,6 +169,25 @@ public class GameView {
         btnBack.setOnAction(e -> backFromSettings());
 
         settingsScreen.getChildren().addAll(titleSettings, lblVolume, volumeSlider, lblLanguage, langCombo, btnBack);
+    }
+
+    private void createHowToPlayScreen() {
+        howToPlayScreen = new VBox(20);
+        howToPlayScreen.setAlignment(Pos.CENTER);
+        howToPlayScreen.setStyle("-fx-background-color: black;");
+
+        titleHowToPlay = new Text("HOW TO PLAY");
+        titleHowToPlay.setFont(Font.font("Arial", FontWeight.BOLD, 40));
+        titleHowToPlay.setStyle("-fx-fill: yellow;");
+
+        instructionsText = new Text("Move: W, A, S, D or ARROW KEYS");
+        instructionsText.setFont(Font.font("Arial", FontWeight.BOLD, 24));
+        instructionsText.setStyle("-fx-fill: white;");
+
+        btnBackFromHowToPlay = createRetroButton("");
+        btnBackFromHowToPlay.setOnAction(e -> showMenu());
+
+        howToPlayScreen.getChildren().addAll(titleHowToPlay, instructionsText, btnBackFromHowToPlay);
     }
 
     private void createPauseScreen() {
@@ -249,6 +273,7 @@ public class GameView {
     public void showMenu() {
         gameController.getCanvas().setVisible(false);
         settingsScreen.setVisible(false);
+        howToPlayScreen.setVisible(false);
         pauseScreen.setVisible(false);
         gameOverScreen.setVisible(false);
         menuScreen.setVisible(true);
@@ -268,6 +293,7 @@ public class GameView {
 
         // Hide UI elements to show settings
         menuScreen.setVisible(false);
+        howToPlayScreen.setVisible(false);
         pauseScreen.setVisible(false);
         gameOverScreen.setVisible(false);
 
@@ -289,9 +315,20 @@ public class GameView {
         }
     }
 
+    public void showHowToPlay() {
+        menuScreen.setVisible(false);
+        settingsScreen.setVisible(false);
+        pauseScreen.setVisible(false);
+        gameOverScreen.setVisible(false);
+        gameController.getCanvas().setVisible(false);
+        howToPlayScreen.setVisible(true);
+        gameController.setGameState(GameState.HOW_TO_PLAY);
+    }
+
     public void showGame() {
         menuScreen.setVisible(false);
         settingsScreen.setVisible(false);
+        howToPlayScreen.setVisible(false);
         pauseScreen.setVisible(false);
         gameOverScreen.setVisible(false);
         gameController.getCanvas().setVisible(true);
@@ -304,6 +341,7 @@ public class GameView {
     public void showPauseMenu() {
         menuScreen.setVisible(false);
         settingsScreen.setVisible(false);
+        howToPlayScreen.setVisible(false);
         gameOverScreen.setVisible(false);
         gameController.getCanvas().setVisible(true);
         pauseScreen.setVisible(true);
@@ -321,6 +359,7 @@ public class GameView {
 
         menuScreen.setVisible(false);
         settingsScreen.setVisible(false);
+        howToPlayScreen.setVisible(false);
         pauseScreen.setVisible(false);
         gameController.getCanvas().setVisible(true);
 
@@ -537,6 +576,11 @@ public class GameView {
         lblVolume.setText(isVi ? "ÂM LƯỢNG:" : "VOLUME:");
         lblLanguage.setText(isVi ? "NGÔN NGỮ:" : "LANGUAGE:");
         titleSettings.setText(isVi ? "CÀI ĐẶT" : "SETTINGS");
+
+        // How To Play
+        if (btnBackFromHowToPlay != null) btnBackFromHowToPlay.setText(isVi ? "QUAY LẠI" : "BACK");
+        if (titleHowToPlay != null) titleHowToPlay.setText(isVi ? "HƯỚNG DẪN" : "HOW TO PLAY");
+        if (instructionsText != null) instructionsText.setText(isVi ? "Di chuyển: W, A, S, D hoặc CÁC PHÍM MŨI TÊN" : "Move: W, A, S, D or ARROW KEYS");
 
         // Pause Menu
         titlePause.setText(isVi ? "TẠM DỪNG" : "PAUSED");
