@@ -11,7 +11,8 @@ public class Main extends Application {
     @Override
     public void start(Stage primaryStage) {
         GameController gameController = new GameController();
-        GameView gameView = new GameView(gameController);
+        // UC-15: Truyen primaryStage vao GameView de ho tro fullscreen
+        GameView gameView = new GameView(gameController, primaryStage);
 
         // Kích thước cửa sổ bằng kích thước Canvas (20 cột x 19 hàng * 32)
         Scene scene = new Scene(gameView.getRoot(), 20 * 32, 19 * 32);

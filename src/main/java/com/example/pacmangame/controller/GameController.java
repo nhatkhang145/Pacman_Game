@@ -9,6 +9,7 @@ import com.example.pacmangame.model.GhostState;
 import com.example.pacmangame.model.GhostType;
 import com.example.pacmangame.model.MapManager;
 import com.example.pacmangame.model.Pacman;
+import com.example.pacmangame.model.SettingsManager;
 import com.example.pacmangame.model.SoundManager;
 import com.example.pacmangame.view.GameView;
 import javafx.animation.AnimationTimer;
@@ -152,6 +153,19 @@ public class GameController {
         return canvas;
     }
 
+    /**
+     * UC-14 – Xử lý sự kiện bàn phím.
+     *
+     * Thay vì so sánh cứng với KeyCode.W / KeyCode.UP, hàm này
+     * đọc các phím hiện tại từ SettingsManager — cho phép
+     * người chơi remap (thay đổi phím) mà không cần sửa code.
+     *
+     * Luồng:
+     *   KeyEvent → so sánh với các phím trong SettingsManager
+     *            → gọi pacman.setNextDirection() hoặc showPauseMenu()
+     *
+     * @param event sự kiện bàn phím do JavaFX Scene phát sinh
+     */
     public void handleKeyPress(KeyEvent event) {
         KeyCode code = event.getCode();
 
@@ -167,18 +181,27 @@ public class GameController {
         }
 
         if (code == KeyCode.W || code == KeyCode.UP) {
+        // Lấy bản đồ phím hiện tại từ SettingsManager (có thể đã được remap)
+        SettingsManager sm = SettingsManager.getInstance();
+
+        // --- Phím hướng di chuyển ---
+        if (code == sm.getKeyUp()) {
             pacman.setNextDirection(Direction.UP);
-        } else if (code == KeyCode.S || code == KeyCode.DOWN) {
+        } else if (code == sm.getKeyDown()) {
             pacman.setNextDirection(Direction.DOWN);
-        } else if (code == KeyCode.A || code == KeyCode.LEFT) {
+        } else if (code == sm.getKeyLeft()) {
             pacman.setNextDirection(Direction.LEFT);
-        } else if (code == KeyCode.D || code == KeyCode.RIGHT) {
+        } else if (code == sm.getKeyRight()) {
             pacman.setNextDirection(Direction.RIGHT);
-        } else if (code == KeyCode.ESCAPE) {
+        }
+
+        // --- Phím Pause / Resume ---
+        // UC-14: phím pause cũng có thể được remap; mặc định là ESCAPE
+        else if (code == sm.getKeyPause()) {
             if (gameState == GameState.PLAYING) {
-                gameView.showPauseMenu();
+                gameView.showPauseMenu();   // Đang chơi → mở Pause menu
             } else if (gameState == GameState.PAUSED) {
-                gameView.showGame();
+                gameView.showGame();        // Đang tạm dừng → tiếp tục
             }
         }
     }
@@ -421,14 +444,14 @@ int tileX = col * GameConfig.TILE_SIZE;
 
                 if (map[row][col] == 1) {
                     if (level == 1) {
-                        // Tường neon retro xanh lơ
+                        // Tuong neon retro xanh lo (Level 1)
                         gc.setFill(Color.rgb(0, 0, 80));
                         gc.fillRect(tileX, tileY, GameConfig.TILE_SIZE, GameConfig.TILE_SIZE);
                         gc.setStroke(Color.CYAN);
                         gc.setLineWidth(2);
                         gc.strokeRoundRect(tileX + 2, tileY + 2, GameConfig.TILE_SIZE - 4, GameConfig.TILE_SIZE - 4, 8, 8);
                     } else {
-                        // Phân Xưởng Cơ Học: Tường màu Đồng/Cam
+                        // Phan Xuong Co Hoc: Tuong mau Dong/Cam (Level 2+)
                         gc.setFill(Color.rgb(80, 40, 0));
                         gc.fillRect(tileX, tileY, GameConfig.TILE_SIZE, GameConfig.TILE_SIZE);
                         gc.setStroke(Color.ORANGE);
@@ -608,3 +631,4 @@ int tileX = col * GameConfig.TILE_SIZE;
         invincibleEndTime = System.currentTimeMillis() + millis;
     }
 }
+
