@@ -62,6 +62,7 @@ public class GameView {
     private Button btnLeaderboard;
     private Button btnHowToPlay;
     private Button btnBack;
+    private Button btnReset; // Nút reset cài đặt mặc định
     private Text titleMenu;
     private Text titleSettings;
     private Text titleHowToPlay;
@@ -200,71 +201,126 @@ public class GameView {
      *   3. Hien thi             (UC-15) - theme + fullscreen
      */
     private void createSettingsScreen() {
-        settingsScreen = new VBox(14);
+        settingsScreen = new VBox(25);
         settingsScreen.setAlignment(Pos.CENTER);
-        settingsScreen.setStyle("-fx-background-color: black;");
-        settingsScreen.setPadding(new Insets(20));
+        settingsScreen.setStyle("-fx-background-color: linear-gradient(to bottom, #050b14, #0b1320);");
+        settingsScreen.setPadding(new Insets(30));
 
+        // Tiêu đề Settings phát sáng neon
         titleSettings = new Text("SETTINGS");
-        titleSettings.setFont(Font.font("Arial", FontWeight.BOLD, 40));
-        titleSettings.setStyle("-fx-fill: yellow;");
+        titleSettings.setFont(Font.font("Arial", FontWeight.EXTRA_BOLD, 48));
+        titleSettings.setStyle("-fx-fill: #ffd166;");
+        DropShadow glow = new DropShadow();
+        glow.setColor(Color.web("#ffd166"));
+        glow.setRadius(15);
+        titleSettings.setEffect(glow);
 
-        // ---- UC-08/UC-13: Am luong ----
-        lblVolume = new Label("AM LUONG:");
-        lblVolume.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        lblVolume.setStyle("-fx-text-fill: white;");
+        // HBox chứa 2 cột chính
+        HBox columnsContainer = new HBox(40);
+        columnsContainer.setAlignment(Pos.CENTER);
+
+        // ================= CỘT TRÁI: ÂM THANH & HỆ THỐNG =================
+        VBox leftColumn = new VBox(15);
+        leftColumn.setAlignment(Pos.CENTER_LEFT);
+        leftColumn.setPadding(new Insets(20));
+        leftColumn.setStyle("-fx-background-color: rgba(13, 27, 42, 0.65);"
+                + " -fx-border-color: #4cc9f0; -fx-border-width: 2; -fx-border-radius: 10;"
+                + " -fx-background-radius: 10; -fx-min-width: 300px;");
+
+        Label sectionLeftTitle = new Label("AUDIO & SYSTEM");
+        sectionLeftTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        sectionLeftTitle.setStyle("-fx-text-fill: #4cc9f0;");
+        leftColumn.getChildren().add(sectionLeftTitle);
+
+        // ---- Âm lượng ----
+        lblVolume = new Label("VOLUME:");
+        lblVolume.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        lblVolume.setStyle("-fx-text-fill: #e9ecef;");
+        
         Slider volumeSlider = new Slider(0, 100, 100);
-        volumeSlider.setMaxWidth(280);
+        volumeSlider.setPrefWidth(260);
+        volumeSlider.setStyle("-fx-control-inner-background: #0b1320;");
         volumeSlider.valueProperty().addListener((obs, o, n) -> {
             SettingsManager.getInstance().setVolume(n.doubleValue() / 100.0);
             SoundManager.getInstance().onVolumeChanged();
         });
+        leftColumn.getChildren().addAll(lblVolume, volumeSlider);
 
-        // ---- Nhac nen (Music) ----
-        lblMusicEnabled = new Label("NHAC NEN:");
-        lblMusicEnabled.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        lblMusicEnabled.setStyle("-fx-text-fill: white;");
+        // ---- Nhạc nền ----
+        lblMusicEnabled = new Label("MUSIC BACKROUND:");
+        lblMusicEnabled.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        lblMusicEnabled.setStyle("-fx-text-fill: #e9ecef;");
         CheckBox cbMusic = new CheckBox();
         cbMusic.setSelected(SettingsManager.getInstance().isMusicEnabled());
-        cbMusic.setStyle("-fx-text-fill: white;");
+        cbMusic.setStyle("-fx-text-fill: white; -fx-cursor: hand;");
         cbMusic.setOnAction(e -> {
             SettingsManager.getInstance().setMusicEnabled(cbMusic.isSelected());
             SoundManager.getInstance().onMusicSettingChanged();
         });
-        HBox musicRow = new HBox(10, lblMusicEnabled, cbMusic);
-        musicRow.setAlignment(Pos.CENTER);
+        HBox musicRow = new HBox(15, lblMusicEnabled, cbMusic);
+        musicRow.setAlignment(Pos.CENTER_LEFT);
+        leftColumn.getChildren().add(musicRow);
 
-        // ---- Hieu ung am thanh (SFX) ----
-        lblSfxEnabled = new Label("HIEU UNG SFX:");
-        lblSfxEnabled.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        lblSfxEnabled.setStyle("-fx-text-fill: white;");
+        // ---- SFX ----
+        lblSfxEnabled = new Label("SOUND EFFECTS (SFX):");
+        lblSfxEnabled.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        lblSfxEnabled.setStyle("-fx-text-fill: #e9ecef;");
         CheckBox cbSfx = new CheckBox();
         cbSfx.setSelected(SettingsManager.getInstance().isSfxEnabled());
-        cbSfx.setStyle("-fx-text-fill: white;");
+        cbSfx.setStyle("-fx-text-fill: white; -fx-cursor: hand;");
         cbSfx.setOnAction(e -> SettingsManager.getInstance().setSfxEnabled(cbSfx.isSelected()));
-        HBox sfxRow = new HBox(10, lblSfxEnabled, cbSfx);
-        sfxRow.setAlignment(Pos.CENTER);
+        HBox sfxRow = new HBox(15, lblSfxEnabled, cbSfx);
+        sfxRow.setAlignment(Pos.CENTER_LEFT);
+        leftColumn.getChildren().add(sfxRow);
 
-        // ---- UC-08: Ngon ngu ----
-        lblLanguage = new Label("NGON NGU:");
-        lblLanguage.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        lblLanguage.setStyle("-fx-text-fill: white;");
+        // ---- Ngôn ngữ ----
+        lblLanguage = new Label("LANGUAGE:");
+        lblLanguage.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        lblLanguage.setStyle("-fx-text-fill: #e9ecef;");
         ComboBox<SettingsManager.Language> langCombo = new ComboBox<>();
         langCombo.getItems().addAll(SettingsManager.Language.values());
         langCombo.setValue(SettingsManager.getInstance().getLanguage());
+        langCombo.setPrefWidth(120);
+        langCombo.setStyle("-fx-background-color: #0b1320; -fx-text-fill: white;"
+                + " -fx-border-color: #4cc9f0; -fx-border-radius: 5; -fx-cursor: hand;");
         langCombo.setOnAction(e -> {
             SettingsManager.getInstance().setLanguage(langCombo.getValue());
             updateLanguage();
         });
+        HBox langRow = new HBox(15, lblLanguage, langCombo);
+        langRow.setAlignment(Pos.CENTER_LEFT);
+        leftColumn.getChildren().add(langRow);
 
-        // UC-14: Tuy chinh dieu khien
-        Separator sep1 = new Separator();
-        sep1.setMaxWidth(320);
+        // ---- Toàn màn hình ----
+        lblFullscreen = new Label("FULLSCREEN:");
+        lblFullscreen.setFont(Font.font("Arial", FontWeight.BOLD, 14));
+        lblFullscreen.setStyle("-fx-text-fill: #e9ecef;");
+        CheckBox cbFullscreen = new CheckBox();
+        cbFullscreen.setSelected(SettingsManager.getInstance().isFullscreen());
+        cbFullscreen.setStyle("-fx-text-fill: white; -fx-cursor: hand;");
+        cbFullscreen.setOnAction(e -> {
+            boolean on = cbFullscreen.isSelected();
+            SettingsManager.getInstance().setFullscreen(on);
+            if (primaryStage != null) primaryStage.setFullScreen(on);
+        });
+        HBox fsRow = new HBox(15, lblFullscreen, cbFullscreen);
+        fsRow.setAlignment(Pos.CENTER_LEFT);
+        leftColumn.getChildren().add(fsRow);
 
 
-        // --- Remap phim ---
-        // Moi hang gom: nhan hien thi + nut remap.
-        // Nhan nut → goi startKeyCapture() de cho nguoi choi nhan phim moi.
+        // ================= CỘT PHẢI: ĐIỀU KHIỂN (CONTROLS) =================
+        VBox rightColumn = new VBox(15);
+        rightColumn.setAlignment(Pos.CENTER);
+        rightColumn.setPadding(new Insets(20));
+        rightColumn.setStyle("-fx-background-color: rgba(13, 27, 42, 0.65);"
+                + " -fx-border-color: #ffd166; -fx-border-width: 2; -fx-border-radius: 10;"
+                + " -fx-background-radius: 10; -fx-min-width: 300px;");
+
+        Label sectionRightTitle = new Label("CONTROLS REMAP");
+        sectionRightTitle.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        sectionRightTitle.setStyle("-fx-text-fill: #ffd166;");
+        rightColumn.getChildren().add(sectionRightTitle);
+
         SettingsManager sm = SettingsManager.getInstance();
         btnRemapUp    = buildRemapRow(sm.getKeyUp());
         btnRemapDown  = buildRemapRow(sm.getKeyDown());
@@ -272,58 +328,79 @@ public class GameView {
         btnRemapRight = buildRemapRow(sm.getKeyRight());
         btnRemapPause = buildRemapRow(sm.getKeyPause());
 
-        // Khi click, bat dau che do "doi phim": hien thi "...", cho nhan phim moi
         btnRemapUp.setOnAction(e    -> startKeyCapture(btnRemapUp,    KeyAction.UP));
         btnRemapDown.setOnAction(e  -> startKeyCapture(btnRemapDown,  KeyAction.DOWN));
         btnRemapLeft.setOnAction(e  -> startKeyCapture(btnRemapLeft,  KeyAction.LEFT));
         btnRemapRight.setOnAction(e -> startKeyCapture(btnRemapRight, KeyAction.RIGHT));
         btnRemapPause.setOnAction(e -> startKeyCapture(btnRemapPause, KeyAction.PAUSE));
 
-        // GridPane: col 0 = nhan mo ta, col 1 = nut phim
         GridPane remapGrid = new GridPane();
-        remapGrid.setHgap(10);
-        remapGrid.setVgap(6);
+        remapGrid.setHgap(20);
+        remapGrid.setVgap(10);
         remapGrid.setAlignment(Pos.CENTER);
-        String[] labels = {"[Len]", "[Xuong]", "[Trai]", "[Phai]", "[Pause]"};
+        
+        String[] labels = {"[UP]", "[DOWN]", "[LEFT]", "[RIGHT]", "[PAUSE]"};
         Button[] btns   = {btnRemapUp, btnRemapDown, btnRemapLeft, btnRemapRight, btnRemapPause};
+        
         for (int i = 0; i < labels.length; i++) {
             Label lbl = new Label(labels[i]);
-            lbl.setStyle("-fx-text-fill: #aaa; -fx-font-size: 13px;");
-            remapGrid.add(lbl,    0, i);
+            lbl.setFont(Font.font("Consolas", FontWeight.BOLD, 14));
+            lbl.setStyle("-fx-text-fill: #b7c5d6;");
+            remapGrid.add(lbl, 0, i);
             remapGrid.add(btns[i], 1, i);
         }
+        rightColumn.getChildren().add(remapGrid);
 
+        // Thêm cả hai cột vào container chính
+        columnsContainer.getChildren().addAll(leftColumn, rightColumn);
 
-        // --- Fullscreen ---
-        // UC-15: CheckBox gui lenh stage.setFullScreen() de bat/tat toan man hinh.
-        lblFullscreen = new Label("TOAN MAN HINH:");
-        lblFullscreen.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-        lblFullscreen.setStyle("-fx-text-fill: white;");
-        CheckBox cbFullscreen = new CheckBox();
-        cbFullscreen.setSelected(SettingsManager.getInstance().isFullscreen());
-        cbFullscreen.setStyle("-fx-text-fill: white;");
-        cbFullscreen.setOnAction(e -> {
-            boolean on = cbFullscreen.isSelected();
-            SettingsManager.getInstance().setFullscreen(on);
-            if (primaryStage != null) primaryStage.setFullScreen(on);
-        });
-        HBox fsRow = new HBox(10, lblFullscreen, cbFullscreen);
-        fsRow.setAlignment(Pos.CENTER);
+        // Hàng chứa nút chức năng ở dưới cùng
+        HBox bottomActions = new HBox(20);
+        bottomActions.setAlignment(Pos.CENTER);
 
-        // --- Nut Quay lai ---
         btnBack = createRetroButton("");
         btnBack.setOnAction(e -> backFromSettings());
 
+        // Nút Khôi phục cài đặt mặc định phong cách Retro màu đỏ neon
+        btnReset = new Button();
+        btnReset.setFont(Font.font("Arial", FontWeight.BOLD, 18));
+        btnReset.setMinWidth(200);
+        btnReset.setStyle("-fx-background-color: black; -fx-text-fill: #ff4d6d; -fx-border-color: #ff4d6d; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;");
+        btnReset.setOnMouseEntered(e -> btnReset.setStyle("-fx-background-color: #ff4d6d; -fx-text-fill: white; -fx-border-color: #ff4d6d; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;"));
+        btnReset.setOnMouseExited(e -> btnReset.setStyle("-fx-background-color: black; -fx-text-fill: #ff4d6d; -fx-border-color: #ff4d6d; -fx-border-width: 3px; -fx-border-radius: 5; -fx-background-radius: 5; -fx-padding: 10 20; -fx-cursor: hand;"));
+        
+        // Gán hành động Reset và cập nhật lại toàn bộ hiển thị UI
+        btnReset.setOnAction(e -> {
+            SettingsManager.getInstance().resetToDefaults();
+            volumeSlider.setValue(SettingsManager.getInstance().getVolume() * 100);
+            cbMusic.setSelected(SettingsManager.getInstance().isMusicEnabled());
+            cbSfx.setSelected(SettingsManager.getInstance().isSfxEnabled());
+            langCombo.setValue(SettingsManager.getInstance().getLanguage());
+            cbFullscreen.setSelected(SettingsManager.getInstance().isFullscreen());
+            
+            // Cập nhật text nút remap
+            btnRemapUp.setText(SettingsManager.getInstance().getKeyUp().getName());
+            btnRemapDown.setText(SettingsManager.getInstance().getKeyDown().getName());
+            btnRemapLeft.setText(SettingsManager.getInstance().getKeyLeft().getName());
+            btnRemapRight.setText(SettingsManager.getInstance().getKeyRight().getName());
+            btnRemapPause.setText(SettingsManager.getInstance().getKeyPause().getName());
+            
+            updateLanguage();
+            SoundManager.getInstance().onMusicSettingChanged();
+            SoundManager.getInstance().onVolumeChanged();
+        });
+
+        // Thiết lập ngôn ngữ ban đầu cho nút Reset thông qua updateLanguage
+        // Chúng ta sẽ thêm logic gán text cho btnReset trong updateLanguage() sau, trước mắt gán tạm thời
+        boolean isVi = SettingsManager.getInstance().getLanguage() == SettingsManager.Language.VI;
+        btnReset.setText(isVi ? "MẶC ĐỊNH" : "RESET DEFAULTS");
+
+        bottomActions.getChildren().addAll(btnReset, btnBack);
+
         settingsScreen.getChildren().addAll(
                 titleSettings,
-                lblVolume, volumeSlider,
-                musicRow,
-                sfxRow,
-                lblLanguage, langCombo,
-                sep1,
-                remapGrid,
-                fsRow,
-                btnBack
+                columnsContainer,
+                bottomActions
         );
     }
 
@@ -799,6 +876,7 @@ public class GameView {
         if (lblSfxEnabled   != null) lblSfxEnabled.setText(isVi ? "HIỆU ỨNG SFX:" : "SFX:");
         lblLanguage.setText(isVi ? "NGÔN NGỮ:" : "LANGUAGE:");
         titleSettings.setText(isVi ? "CÀI ĐẶT" : "SETTINGS");
+        if (btnReset != null) btnReset.setText(isVi ? "MẶC ĐỊNH" : "RESET DEFAULTS");
 
         // How To Play
         if (btnBackFromHowToPlay != null) btnBackFromHowToPlay.setText(isVi ? "QUAY LẠI" : "BACK");
