@@ -183,6 +183,10 @@ public class GameController {
         // Lấy bản đồ phím hiện tại từ SettingsManager (có thể đã được remap)
         SettingsManager sm = SettingsManager.getInstance();
 
+        if (pacman.isDying()) {
+            return; // Khóa điều khiển khi đang chết
+        }
+
         // --- Phím hướng di chuyển ---
         if (code == sm.getKeyUp()) {
             pacman.setNextDirection(Direction.UP);
@@ -285,6 +289,20 @@ public class GameController {
         if (isPaused) {
             if (now > pauseEndTime) {
                 isPaused = false;
+                if (pacman.isDying()) {
+                    pacman.setDying(false);
+                    if (lives == 0) {
+                        isGameOver = true;
+                        gameStarted = false;
+                        clearSavedGame();
+                        if (gameView != null) {
+                            gameView.showGameOver(score);
+                        }
+                    } else {
+                        resetPositions();
+                        setInvincible(2000);
+                    }
+                }
             } else {
                 return;
             }
@@ -413,18 +431,8 @@ public class GameController {
                     System.out.println("[DEBUG] lives after decrement=" + lives);
                     isPaused = true;
                     pauseEndTime = System.currentTimeMillis() + 2000;
+                    pacman.setDying(true);
 
-                    if (lives == 0) {
-                        isGameOver = true;
-                        gameStarted = false;
-                        clearSavedGame();
-                        if (gameView != null) {
-                            gameView.showGameOver(score);
-                        }
-                    } else {
-                        resetPositions();
-                        setInvincible(2000);
-                    }
                     break; // Ngừng kiểm tra các ma khác
                 } else if (g.getState() == GhostState.FRIGHTENED) {
                     SoundManager.getInstance().playSound("eatghost");

@@ -12,6 +12,19 @@ public class Pacman {
     private Direction nextDirection = Direction.NONE;
 
     private int animationFrame = 0;
+    private boolean isDying = false;
+    private long deathStartTime = 0;
+
+    public boolean isDying() {
+        return isDying;
+    }
+
+    public void setDying(boolean dying) {
+        this.isDying = dying;
+        if (dying) {
+            this.deathStartTime = System.currentTimeMillis();
+        }
+    }
 
     public Pacman(int startX, int startY) {
         this.x = startX;
@@ -191,6 +204,31 @@ int currentGridX = x / GameConfig.TILE_SIZE;
 
         double size = GameConfig.TILE_SIZE - 4;
         double offset = 2;
+
+        if (isDying) {
+            long now = System.currentTimeMillis();
+            long elapsed = now - deathStartTime;
+            double angle = 0;
+            if (elapsed < 2000) {
+                angle = (elapsed / 2000.0) * 180; // Há miệng to ra đến 180 độ (nửa hình tròn mỗi bên)
+            } else {
+                angle = 180;
+            }
+            
+            double startAngle = 0;
+            switch (currentDirection) {
+                case RIGHT: startAngle = angle; break;
+                case UP: startAngle = 90 + angle; break;
+                case LEFT: startAngle = 180 + angle; break;
+                case DOWN: startAngle = 270 + angle; break;
+                case NONE: startAngle = angle; break;
+            }
+            double extent = 360 - 2 * angle;
+            if (extent > 0) {
+                gc.fillArc(x + offset, y + offset, size, size, startAngle, extent, javafx.scene.shape.ArcType.ROUND);
+            }
+            return;
+        }
 
         // Tính toán góc há miệng
         double angle = 45 * Math.abs(Math.sin(animationFrame * 0.3));
