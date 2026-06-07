@@ -169,6 +169,7 @@ public class GameController {
     public void handleKeyPress(KeyEvent event) {
         KeyCode code = event.getCode();
 
+        // PhanTinThanh_23130308 - Handle menu keyboard navigation
         if (gameState == GameState.MENU) {
             if (code == KeyCode.W || code == KeyCode.UP) {
                 gameView.navigateMenu(-1);
@@ -183,6 +184,7 @@ public class GameController {
         // Lấy bản đồ phím hiện tại từ SettingsManager (có thể đã được remap)
         SettingsManager sm = SettingsManager.getInstance();
 
+        // PhanTinThanh_23130308 - Khóa điều khiển khi đang chết
         if (pacman.isDying()) {
             return; // Khóa điều khiển khi đang chết
         }
@@ -289,6 +291,7 @@ public class GameController {
         if (isPaused) {
             if (now > pauseEndTime) {
                 isPaused = false;
+                // PhanTinThanh_23130308 - Xử lý sau khi kết thúc animation chết
                 if (pacman.isDying()) {
                     pacman.setDying(false);
                     if (lives == 0) {
@@ -431,6 +434,8 @@ public class GameController {
                     System.out.println("[DEBUG] lives after decrement=" + lives);
                     isPaused = true;
                     pauseEndTime = System.currentTimeMillis() + 2000;
+                    
+                    // PhanTinThanh_23130308 - Trigger death animation thay vì reset ngay
                     pacman.setDying(true);
 
                     break; // Ngừng kiểm tra các ma khác

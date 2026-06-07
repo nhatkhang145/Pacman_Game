@@ -2,6 +2,9 @@ package com.example.pacmangame.model;
 
 import javafx.scene.canvas.GraphicsContext;
 import javafx.scene.paint.Color;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class Pacman {
     private int x;
@@ -12,6 +15,8 @@ public class Pacman {
     private Direction nextDirection = Direction.NONE;
 
     private int animationFrame = 0;
+    
+    // PhanTinThanh_23130308 - Death Animation state
     private boolean isDying = false;
     private long deathStartTime = 0;
 
@@ -25,6 +30,18 @@ public class Pacman {
             this.deathStartTime = System.currentTimeMillis();
         }
     }
+
+    // PhanTinThanh_23130308 - DustParticle for drift animation
+    private class DustParticle {
+        double x, y;
+        long createTime;
+        public DustParticle(double x, double y) {
+            this.x = x;
+            this.y = y;
+            this.createTime = System.currentTimeMillis();
+        }
+    }
+    private List<DustParticle> dustParticles = new ArrayList<>();
 
     public Pacman(int startX, int startY) {
         this.x = startX;
@@ -95,6 +112,13 @@ public class Pacman {
         } else {
             // Cho phép đảo ngược hướng ngay lập tức (180 độ) ngay cả khi chưa khớp lưới
             if (nextDirection != Direction.NONE && isOpposite(currentDirection, nextDirection)) {
+                // PhanTinThanh_23130308 - Thêm hiệu ứng lết bánh (drift dust) khi quay xe
+                double cx = x + GameConfig.TILE_SIZE / 2.0;
+                double cy = y + GameConfig.TILE_SIZE / 2.0;
+                // Tạo 2 hạt bụi hơi lệch nhau một chút để trông tự nhiên
+                dustParticles.add(new DustParticle(cx - 4, cy - 2));
+                dustParticles.add(new DustParticle(cx + 2, cy + 4));
+                
                 currentDirection = nextDirection;
             }
         }
@@ -200,14 +224,32 @@ int currentGridX = x / GameConfig.TILE_SIZE;
     }
 
     public void render(GraphicsContext gc) {
+        // PhanTinThanh_23130308 - Vẽ hiệu ứng lết bánh (bụi) trước để nằm dưới Pacman
+        long now = System.currentTimeMillis();
+        Iterator<DustParticle> iter = dustParticles.iterator();
+        while (iter.hasNext()) {
+            DustParticle p = iter.next();
+            long age = now - p.createTime;
+            if (age > 400) { // Tồn tại 400ms
+                iter.remove();
+            } else {
+                double alpha = 1.0 - (age / 400.0);
+                gc.setFill(Color.rgb(200, 200, 200, alpha));
+                // Bụi to dần ra một chút
+                double pSize = 4 + (age / 100.0);
+                gc.fillOval(p.x - pSize / 2, p.y - pSize / 2, pSize, pSize);
+            }
+        }
+
         gc.setFill(Color.YELLOW);
 
         double size = GameConfig.TILE_SIZE - 4;
         double offset = 2;
 
+        // PhanTinThanh_23130308 - Render Death Animation (Há miệng to dần)
         if (isDying) {
-            long now = System.currentTimeMillis();
-            long elapsed = now - deathStartTime;
+            long nowTime = System.currentTimeMillis();
+            long elapsed = nowTime - deathStartTime;
             double angle = 0;
             if (elapsed < 2000) {
                 angle = (elapsed / 2000.0) * 180; // Há miệng to ra đến 180 độ (nửa hình tròn mỗi bên)
