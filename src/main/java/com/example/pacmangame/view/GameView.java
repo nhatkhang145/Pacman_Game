@@ -4,6 +4,7 @@ import com.example.pacmangame.controller.GameController;
 import com.example.pacmangame.dao.LeaderboardDAO;
 import com.example.pacmangame.model.GameState;
 import com.example.pacmangame.model.SettingsManager;
+import com.example.pacmangame.model.SoundManager;
 import javafx.animation.FadeTransition;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -42,6 +43,8 @@ public class GameView {
 
     // --- Settings labels (can null-check in updateLanguage) ---
     private Label lblVolume;
+    private Label lblMusicEnabled;
+    private Label lblSfxEnabled;
     private Label lblLanguage;
     private Label lblFullscreen;   // UC-15
 
@@ -207,17 +210,42 @@ public class GameView {
         titleSettings.setStyle("-fx-fill: yellow;");
 
         // ---- UC-08/UC-13: Am luong ----
-        // Lang nghe Slider de cap nhat volume theo thoi gian thuc.
         lblVolume = new Label("AM LUONG:");
         lblVolume.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         lblVolume.setStyle("-fx-text-fill: white;");
         Slider volumeSlider = new Slider(0, 100, 100);
         volumeSlider.setMaxWidth(280);
-        volumeSlider.valueProperty().addListener((obs, o, n) ->
-                SettingsManager.getInstance().setVolume(n.doubleValue() / 100.0));
+        volumeSlider.valueProperty().addListener((obs, o, n) -> {
+            SettingsManager.getInstance().setVolume(n.doubleValue() / 100.0);
+            SoundManager.getInstance().onVolumeChanged();
+        });
+
+        // ---- Nhac nen (Music) ----
+        lblMusicEnabled = new Label("NHAC NEN:");
+        lblMusicEnabled.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        lblMusicEnabled.setStyle("-fx-text-fill: white;");
+        CheckBox cbMusic = new CheckBox();
+        cbMusic.setSelected(SettingsManager.getInstance().isMusicEnabled());
+        cbMusic.setStyle("-fx-text-fill: white;");
+        cbMusic.setOnAction(e -> {
+            SettingsManager.getInstance().setMusicEnabled(cbMusic.isSelected());
+            SoundManager.getInstance().onMusicSettingChanged();
+        });
+        HBox musicRow = new HBox(10, lblMusicEnabled, cbMusic);
+        musicRow.setAlignment(Pos.CENTER);
+
+        // ---- Hieu ung am thanh (SFX) ----
+        lblSfxEnabled = new Label("HIEU UNG SFX:");
+        lblSfxEnabled.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+        lblSfxEnabled.setStyle("-fx-text-fill: white;");
+        CheckBox cbSfx = new CheckBox();
+        cbSfx.setSelected(SettingsManager.getInstance().isSfxEnabled());
+        cbSfx.setStyle("-fx-text-fill: white;");
+        cbSfx.setOnAction(e -> SettingsManager.getInstance().setSfxEnabled(cbSfx.isSelected()));
+        HBox sfxRow = new HBox(10, lblSfxEnabled, cbSfx);
+        sfxRow.setAlignment(Pos.CENTER);
 
         // ---- UC-08: Ngon ngu ----
-        // Khi doi ngon ngu, goi updateLanguage() de lam moi toan bo text.
         lblLanguage = new Label("NGON NGU:");
         lblLanguage.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         lblLanguage.setStyle("-fx-text-fill: white;");
@@ -289,6 +317,8 @@ public class GameView {
         settingsScreen.getChildren().addAll(
                 titleSettings,
                 lblVolume, volumeSlider,
+                musicRow,
+                sfxRow,
                 lblLanguage, langCombo,
                 sep1,
                 remapGrid,
@@ -462,8 +492,9 @@ public class GameView {
         gameOverScreen.setVisible(false);
         menuScreen.setVisible(true);
         gameController.setGameState(GameState.MENU);
-        // Stop the game loop while in the menu to save CPU and avoid unexpected input
         gameController.stop();
+        // Phat nhac intro o man hinh menu
+        SoundManager.getInstance().playIntro();
 
         if (gameController.canContinueGame()) {
             btnContinue.setDisable(false);
@@ -520,8 +551,9 @@ public class GameView {
         gameController.getCanvas().setVisible(true);
         gameController.getCanvas().requestFocus();
         gameController.setGameState(GameState.PLAYING);
-        // Ensure the game loop is running when entering the game
         gameController.start();
+        // Tiep tuc nhac nen in-game (resume neu dang pause)
+        SoundManager.getInstance().resumeMusic();
     }
 
     public void showPauseMenu() {
@@ -532,11 +564,14 @@ public class GameView {
         gameController.getCanvas().setVisible(true);
         pauseScreen.setVisible(true);
         gameController.setGameState(GameState.PAUSED);
+        // Tam dung nhac khi game bi pause
+        SoundManager.getInstance().pauseMusic();
     }
 
     public void showGameOver(int score) {
-        // Stop the game loop to freeze the canvas and avoid animation interference
         gameController.stop();
+        // Dung nhac nen khi game over
+        SoundManager.getInstance().stopAllMusic();
 
         // Show the Game Over overlay first so the user sees it immediately.
         // Schedule the optional score recording to run after the overlay is rendered
@@ -760,6 +795,8 @@ public class GameView {
         // Settings
         btnBack.setText(isVi ? "QUAY LẠI" : "BACK");
         lblVolume.setText(isVi ? "ÂM LƯỢNG:" : "VOLUME:");
+        if (lblMusicEnabled != null) lblMusicEnabled.setText(isVi ? "NHẠC NỀN:" : "MUSIC:");
+        if (lblSfxEnabled   != null) lblSfxEnabled.setText(isVi ? "HIỆU ỨNG SFX:" : "SFX:");
         lblLanguage.setText(isVi ? "NGÔN NGỮ:" : "LANGUAGE:");
         titleSettings.setText(isVi ? "CÀI ĐẶT" : "SETTINGS");
 

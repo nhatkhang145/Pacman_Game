@@ -180,7 +180,6 @@ public class GameController {
             return;
         }
 
-        if (code == KeyCode.W || code == KeyCode.UP) {
         // Lấy bản đồ phím hiện tại từ SettingsManager (có thể đã được remap)
         SettingsManager sm = SettingsManager.getInstance();
 
@@ -245,6 +244,8 @@ public class GameController {
         }
 
         applySnapshot(snapshot);
+        // Phat nhac nen in-game khi tiep tuc game da luu
+        SoundManager.getInstance().playBackground();
         return true;
     }
 
@@ -265,6 +266,8 @@ public class GameController {
         gameStarted = true;
         isPaused = false;
         initLevel();
+        // Phát nhạc nền in-game khi bắt đầu chơi mới
+        SoundManager.getInstance().playBackground();
     }
 
     public boolean isGameActive() {

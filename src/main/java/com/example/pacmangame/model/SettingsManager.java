@@ -22,6 +22,12 @@ public class SettingsManager {
     private double volume = 1.0;
     private boolean isMuted = false;
 
+    /** Bật/tắt nhạc nền (Intro + In-game music) */
+    private boolean musicEnabled = true;
+
+    /** Bật/tắt hiệu ứng âm thanh (waka, powerup, eatghost, death) */
+    private boolean sfxEnabled = true;
+
     /** Ngôn ngữ hiện tại của giao diện */
     private Language language = Language.VI;
 
@@ -64,8 +70,19 @@ public class SettingsManager {
 
     public boolean isMuted() { return isMuted; }
 
-
     public void setMuted(boolean muted) { this.isMuted = muted; }
+
+    /** @return true nếu nhạc nền đang được bật */
+    public boolean isMusicEnabled() { return musicEnabled; }
+
+    /** Bật/tắt nhạc nền */
+    public void setMusicEnabled(boolean musicEnabled) { this.musicEnabled = musicEnabled; }
+
+    /** @return true nếu hiệu ứng âm thanh đang được bật */
+    public boolean isSfxEnabled() { return sfxEnabled; }
+
+    /** Bật/tắt hiệu ứng âm thanh */
+    public void setSfxEnabled(boolean sfxEnabled) { this.sfxEnabled = sfxEnabled; }
 
 
 
@@ -113,15 +130,17 @@ public class SettingsManager {
      * Bao gồm: âm thanh, ngôn ngữ, theme, fullscreen, và điều khiển.
      */
     public void resetToDefaults() {
-        volume      = 1.0;
-        isMuted     = false;
-        language    = Language.VI;
-        fullscreen  = false;
-        inputDevice = InputDevice.KEYBOARD;
-        keyUp       = KeyCode.UP;
-        keyDown     = KeyCode.DOWN;
-        keyLeft     = KeyCode.LEFT;
-        keyRight    = KeyCode.RIGHT;
-        keyPause    = KeyCode.ESCAPE;
+        volume        = 1.0;
+        isMuted       = false;
+        musicEnabled  = true;
+        sfxEnabled    = true;
+        language      = Language.VI;
+        fullscreen    = false;
+        inputDevice   = InputDevice.KEYBOARD;
+        keyUp         = KeyCode.UP;
+        keyDown       = KeyCode.DOWN;
+        keyLeft       = KeyCode.LEFT;
+        keyRight      = KeyCode.RIGHT;
+        keyPause      = KeyCode.ESCAPE;
     }
 }
