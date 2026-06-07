@@ -34,6 +34,7 @@ public class GameView {
     private GameController gameController;
     private GameState previousState = GameState.MENU;
 
+    // PhanTinThanh_23130308 - Variables for Menu Keyboard Navigation
     private int currentMenuIndex = 0;
     private List<Button> menuButtons;
 
@@ -159,10 +160,12 @@ public class GameView {
 
         menuScreen.getChildren().addAll(titleMenu, btnPlay, btnContinue, btnLeaderboard, btnSettings, btnHowToPlay);
 
+        // PhanTinThanh_23130308 - Store menu buttons for keyboard navigation
         menuButtons = Arrays.asList(btnPlay, btnContinue, btnLeaderboard, btnSettings, btnHowToPlay);
         updateMenuSelection();
     }
 
+    // PhanTinThanh_23130308 - Handle menu navigation
     public void navigateMenu(int direction) {
         if (menuButtons == null || menuButtons.isEmpty()) return;
         
@@ -175,12 +178,14 @@ public class GameView {
         updateMenuSelection();
     }
 
+    // PhanTinThanh_23130308 - Select current menu item
     public void selectCurrentMenu() {
         if (menuButtons != null && !menuButtons.isEmpty() && !menuButtons.get(currentMenuIndex).isDisabled()) {
             menuButtons.get(currentMenuIndex).fire();
         }
     }
 
+    // PhanTinThanh_23130308 - Update visual selection for menu items
     public void updateMenuSelection() {
         if (menuButtons == null) return;
         for (int i = 0; i < menuButtons.size(); i++) {
@@ -609,6 +614,7 @@ public class GameView {
         }
     }
 
+    // PhanTinThanh_23130308 - Show How To Play screen
     public void showHowToPlay() {
         menuScreen.setVisible(false);
         settingsScreen.setVisible(false);
@@ -899,6 +905,7 @@ public class GameView {
         hintGameOver.setText(isVi ? "LƯU, CHƠI LẠI HOẶC VỀ MENU" : "SAVE, RESTART OR RETURN TO MENU");
     }
 
+    // PhanTinThanh_23130308 - Fade Transition utility for screen switching
     private void fadeToGame(javafx.scene.Node screenToFade) {
         FadeTransition fadeOut = new FadeTransition(Duration.seconds(0.3), screenToFade);
         fadeOut.setFromValue(1.0);
