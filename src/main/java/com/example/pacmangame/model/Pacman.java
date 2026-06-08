@@ -87,7 +87,10 @@ public class Pacman {
     public void setNextDirection(Direction dir) {
         this.nextDirection = dir;
     }
-
+    
+ // [Phát triển tiếp - UC-03 & UC-04]: Phương thức update thực thi logic di chuyển
+    // Đây là thành phần cốt lõi giúp Ghost (UC-03) xác định mục tiêu và GameManager (UC-04) 
+    // tính toán va chạm dựa trên tọa độ (x, y) mới nhất của Pac-Man.
     public void update(int[][] map) {
         if (currentDirection != Direction.NONE) {
             animationFrame++;
@@ -297,7 +300,9 @@ int currentGridX = x / GameConfig.TILE_SIZE;
         double extent = 360 - 2 * angle;
         gc.fillArc(x + offset, y + offset, size, size, startAngle, extent, javafx.scene.shape.ArcType.ROUND);
     }
-
+ // [Phát triển tiếp - UC-04]: Cung cấp dữ liệu tọa độ lưới
+    // Giúp GameManager (UC-04) xác định Pac-Man đang đứng trên chấm nhỏ hay Power Pellet
+    // để cộng điểm hoặc kích hoạt trạng thái FRIGHTENED cho ma.
     public int getGridX() {
         return x / GameConfig.TILE_SIZE;
     }
